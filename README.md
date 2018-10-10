@@ -5,6 +5,7 @@ Here You can see the progress of my **Graduate work**.
 ### Papers and links:
 1. The main [StarCraft II: A New Challenge for Reinforcement Learning](https://arxiv.org/pdf/1708.04782.pdf)
 2. A3C network [Asynchronous Actor-Critic Agents](https://medium.com/emergent-future/simple-reinforcement-learning-with-tensorflow-part-8-asynchronous-actor-critic-agents-a3c-c88f72a5e9f2)
+3. VIN [Value Iteration Network](http://papers.nips.cc/paper/6046-value-iteration-networks.pdf)
 
 Additionally:
 
