@@ -12,5 +12,6 @@ Additionally:
 4. Environments for classic control from [GYM](https://github.com/openai/gym/wiki/Leaderboard)
 5. All environments from [GYM](https://gym.openai.com/envs/#classic_control)
 6. API for Starcraft 2 - [PySC2](https://github.com/deepmind/pysc2)
+7. Detailed information about PySC is [here](https://github.com/deepmind/pysc2/blob/master/docs/environment.md)
 7. In this work authors propose multi-threaded asynchronous variants of one-step Sarsa, one-step Q-learning, n-step Q-learning, and
 advantage actor-critic using multiple CPU threads on a single machine instead of separate machines.  [Asynchronous Methods for Deep RL](https://arxiv.org/pdf/1602.01783.pdf#page=9)
