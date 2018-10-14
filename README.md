@@ -20,6 +20,7 @@ advantage actor-critic using multiple CPU threads on a single machine instead of
 
 ### How to get atari-py and atari games
 ```
+pip install gym # for classic control
+pip install gym[all] # all games
 pip install git+https://github.com/Kojoley/atari-py.git
-pip install gym[all]
 ```
