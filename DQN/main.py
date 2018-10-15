@@ -7,8 +7,8 @@ import torch
 
 env = gym.make('SpaceInvaders-v0')
 
-MAX_EPISODES = 500
-MAX_ACTIONS = 2000
+MAX_EPISODES = 1001
+MAX_ACTIONS = 1500
 
 BATCH_SIZE = 32
 experience = Experience()
