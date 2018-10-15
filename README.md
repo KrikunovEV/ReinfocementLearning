@@ -25,4 +25,8 @@ advantage actor-critic using multiple CPU threads on a single machine instead of
 pip install gym # for classic control
 pip install gym[all] # all games
 pip install git+https://github.com/Kojoley/atari-py.git
+
+# for collab
+from google.colab import drive
+drive.mount("./googledrive")
 ```
