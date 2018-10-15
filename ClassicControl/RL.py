@@ -22,7 +22,7 @@ Rewards = []
 
 MyExperience = Experience()
 
-for episode in range(1, 501):
+for episode in range(1, 1001):
 
     obs = env.reset()
     total_reward = 0
@@ -40,7 +40,7 @@ for episode in range(1, 501):
 
         # make a decision
         action = torch.argmax(predict).detach().numpy()
-
+        
         # get useful data
         obs_next, reward, done, info = env.step(action)
 

@@ -11,10 +11,12 @@ class Experience:
         self.myExperience.append([obs, reward, action, next_obs, terminal])
 
     def replayExperience(self, model, loss_fn, optimizer, DISCOUNT_FACTOR):
-        if len(self.myExperience) < self.BATCH_SIZE:
-            return
 
-        batch = random.sample(self.myExperience, self.BATCH_SIZE)
+        batch_size = self.BATCH_SIZE
+        if len(self.myExperience) < self.BATCH_SIZE:
+            batch_size = len(self.myExperience)
+
+        batch = random.sample(self.myExperience, batch_size)
         for obs, reward, action, next_obs, terminal in batch:
 
             q_new = reward
