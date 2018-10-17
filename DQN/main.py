@@ -10,18 +10,18 @@ env = gym.make('SpaceInvaders-v0')
 MAX_EPISODES = 1001
 MAX_ACTIONS = 1500
 
-BATCH_SIZE = 32
+BATCH_SIZE = 16
 experience = Experience()
 
-EPSILON_THRESHOLD = 0.01
+EPSILON_THRESHOLD = 0.05
 epsilon = 1.0
 
-DISCOUNT_FACTOR = 0.9
+DISCOUNT_FACTOR = 0.99
 
 model = Model()
 
 loss_fn = torch.nn.SmoothL1Loss().cuda()
-optimizer = torch.optim.RMSprop(model.parameters(), lr=0.00025, alpha=0.95, eps=0.01)
+optimizer = torch.optim.RMSprop(model.parameters(), lr=0.0002, alpha=0.95, eps=0.01, momentum=0.95)
 
 for episode in range(1, MAX_EPISODES):
 

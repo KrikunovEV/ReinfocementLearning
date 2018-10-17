@@ -10,14 +10,14 @@ class Model(torch.nn.Module):
             torch.nn.ReLU(),
             torch.nn.Conv2d(32, 64, 4, stride=2),
             torch.nn.ReLU(),
-            torch.nn.Conv2d(64, 64, 3),
+            torch.nn.Conv2d(64, 64, 3, stride=1),
             torch.nn.ReLU()
         ).cuda()
 
         self.fc_layers = torch.nn.Sequential(
-            torch.nn.Linear(9 * 6 * 64, 256),
+            torch.nn.Linear(9 * 6 * 64, 512),
             torch.nn.ReLU(),
-            torch.nn.Linear(256, 6)
+            torch.nn.Linear(512, 6)
         ).cuda()
 
     def forward(self, data):

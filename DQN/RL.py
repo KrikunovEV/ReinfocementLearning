@@ -20,7 +20,7 @@ def getQvalues(model, data, gamma):
     action = [data[i][3] for i in range(len(data))]
     done = torch.ByteTensor([data[i][4] for i in range(len(data))]).cuda()
 
-    maxQvalues = gamma * torch.max(model.noGradForward(next_obs), 1)[0]
+    maxQvalues = reward + gamma * torch.max(model.noGradForward(next_obs), 1)[0]
     Qnew = torch.where(done, reward, maxQvalues)
 
     Qvalues = model.noGradForward(obs)
