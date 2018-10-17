@@ -3,30 +3,39 @@
 Here You can see the progress of my **Graduate work**.
 
 ### Papers and links:
-1. The main [StarCraft II: A New Challenge for Reinforcement Learning](https://arxiv.org/pdf/1708.04782.pdf)
-2. A3C network [Asynchronous Actor-Critic Agents](https://medium.com/emergent-future/simple-reinforcement-learning-with-tensorflow-part-8-asynchronous-actor-critic-agents-a3c-c88f72a5e9f2)
-3. VIN [Value Iteration Network](http://papers.nips.cc/paper/6046-value-iteration-networks.pdf)
-4. DQN [Deep Q Network](https://www.cs.toronto.edu/~vmnih/docs/dqn.pdf)
-5. [Prioritized experience replay](https://arxiv.org/pdf/1511.05952.pdf)
+1. The main [StarCraft II: A New Challenge for Reinforcement Learning](https://arxiv.org/pdf/1708.04782.pdf);
+2. The main paper A3C [Asynchronous Actor-Critic Agents](https://arxiv.org/pdf/1602.01783.pdf);
+3. A3C one of [explanation](https://medium.com/emergent-future/simple-reinforcement-learning-with-tensorflow-part-8-asynchronous-actor-critic-agents-a3c-c88f72a5e9f2);
+4. A3C one of [implementation](https://github.com/awjuliani/DeepRL-Agents/blob/master/A3C-Doom.ipynb) on github;
+5. API for Starcraft 2 - [PySC2](https://github.com/deepmind/pysc2);
+6. Detailed information about PySC2 is [here](https://github.com/deepmind/pysc2/blob/master/docs/environment.md);
 
-Additionally:
+Can be interesting:
 
-6. Environments for classic control from [GYM](https://github.com/openai/gym/wiki/Leaderboard)
-7. All environments from [GYM](https://gym.openai.com/envs/#classic_control)
-8. Intuitive RL [A2C](https://hackernoon.com/intuitive-rl-intro-to-advantage-actor-critic-a2c-4ff545978752)
-9. API for Starcraft 2 - [PySC2](https://github.com/deepmind/pysc2)
-10. Detailed information about PySC is [here](https://github.com/deepmind/pysc2/blob/master/docs/environment.md)
-11. In this work authors propose multi-threaded asynchronous variants of one-step Sarsa, one-step Q-learning, n-step Q-learning, and
-advantage actor-critic using multiple CPU threads on a single machine instead of separate machines.  [Asynchronous Methods for Deep RL](https://arxiv.org/pdf/1602.01783.pdf#page=9)
+7. VIN [Value Iteration Network](http://papers.nips.cc/paper/6046-value-iteration-networks.pdf);
+8. DQN [Deep Q Network](https://www.cs.toronto.edu/~vmnih/docs/dqn.pdf);
+9. [Prioritized experience replay](https://arxiv.org/pdf/1511.05952.pdf);
+10. All environments from [GYM](https://gym.openai.com/envs/#classic_control);
+11. Detailed information about PySC is [here](https://github.com/deepmind/pysc2/blob/master/docs/environment.md).
 
-
-### How to get atari-py and atari games
-```
+### How to get atari games and PySC2
+```python
 pip install gym # for classic control
-pip install gym[all] # all games
-pip install git+https://github.com/Kojoley/atari-py.git
+pip install gym[atari] # Atari games from link **10**
+pip install gym[all] # get all games from link **10**
+pip install git+https://github.com/Kojoley/atari-py.git # get atari-py if needed
+pip install pysc2
+```
 
-# for collab
+### How to collab
+```python
+# Get your google drive
 from google.colab import drive
 drive.mount("./googledrive")
+
+# Put ! in beggining of pip command
+!pip install gym[atari]
+
+# Run your .py file with %run
+%run ./main.py
 ```
