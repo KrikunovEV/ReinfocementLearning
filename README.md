@@ -15,8 +15,7 @@ Can be interesting:
 7. VIN [Value Iteration Network](http://papers.nips.cc/paper/6046-value-iteration-networks.pdf);
 8. DQN [Deep Q Network](https://www.cs.toronto.edu/~vmnih/docs/dqn.pdf);
 9. [Prioritized experience replay](https://arxiv.org/pdf/1511.05952.pdf);
-10. All environments from [GYM](https://gym.openai.com/envs/#classic_control);
-11. Detailed information about PySC is [here](https://github.com/deepmind/pysc2/blob/master/docs/environment.md).
+10. All environments from [Gym](https://gym.openai.com/envs/#classic_control).
 
 ### How to get atari games and PySC2
 ```python
