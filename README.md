@@ -21,8 +21,8 @@ Can be interesting:
 ### How to get atari games and PySC2
 ```python
 pip install gym # for classic control
-pip install gym[atari] # Atari games from link **10**
-pip install gym[all] # get all games from link **10**
+pip install gym[atari] # Atari games
+pip install gym[all] # get all games
 pip install git+https://github.com/Kojoley/atari-py.git # get atari-py if needed
 pip install pysc2
 ```
