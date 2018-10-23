@@ -1,14 +1,14 @@
 import os
+import torch
 from ActorCriticModel import ActorCriticModel
 from Agent import Agent
 from torch.multiprocessing import Process, Pipe, Lock
-import torch
 from visdom import Visdom
 
 
 if __name__ == '__main__':
     os.environ["OMP_NUM_THREADS"] = "1"
-    #mp.set_start_method('spawn')
+    os.environ['CUDA_VISIBLE_DEVICES'] = ""
 
     vis = Visdom()
 
@@ -20,7 +20,7 @@ if __name__ == '__main__':
     GlobalACmodel = ActorCriticModel()
     GlobalACmodel.share_memory()
 
-    optimizer = torch.optim.Adam(GlobalACmodel.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(GlobalACmodel.parameters(), lr=0.0001)
 
     lock = Lock()
 
@@ -39,10 +39,11 @@ if __name__ == '__main__':
         agent_threads.append(thread)
 
     dones = [False, False, False, False]
-
+    once = True
     episode = 0
     while True:
-        (epi, episode_reward, episode_length, episode_mean_value, episode_mean_entropy, value_loss, policy_loss, cpu, done) = reciver.recv()
+        (epi, episode_reward, episode_length, episode_mean_value, episode_mean_entropy,
+         value_loss, policy_loss, cpu, done) = reciver.recv()
         episode += 1
         dones[cpu] = done
 
@@ -55,7 +56,11 @@ if __name__ == '__main__':
         if exit:
             break
 
-        if dones[cpu] == True:
+        if episode % 100 == 0:
+            with lock:
+                torch.save(GlobalACmodel.state_dict(), 'trainModels/episodes_' + str(episode) + '.pt')
+
+        if done:
             continue
 
         vis.line([episode_reward], [episode], update='append', win='reward')
@@ -65,12 +70,14 @@ if __name__ == '__main__':
         vis.line([value_loss], [episode], update='append', win='value_loss')
         vis.line([policy_loss], [episode], update='append', win='policy_loss')
 
-        vis.update_window_opts('reward', opts={'title': 'Episode rewards', 'xlabel': 'episode', 'ylabel': 'reward'})
-        vis.update_window_opts('length', opts={'title': 'Number of actions', 'xlabel': 'episode', 'ylabel': 'actions'})
-        vis.update_window_opts('mean_value', opts={'title': 'Mean value', 'xlabel': 'episode', 'ylabel': 'V'})
-        vis.update_window_opts('mean_entropy', opts={'title': 'Mean entropy', 'xlabel': 'episode', 'ylabel': 'entropy'})
-        vis.update_window_opts('value_loss', opts={'title': 'Value loss(critic)', 'xlabel': 'episode', 'ylabel': 'loss'})
-        vis.update_window_opts('policy_loss', opts={'title': 'Policy loss(actor)', 'xlabel': 'episode', 'ylabel': 'loss'})
+        if once:
+            once = False
+            vis.update_window_opts('reward', opts={'title': 'Episode rewards', 'xlabel': 'episode', 'ylabel': 'reward'})
+            vis.update_window_opts('length', opts={'title': 'Number of actions', 'xlabel': 'episode', 'ylabel': 'actions'})
+            vis.update_window_opts('mean_value', opts={'title': 'Mean value', 'xlabel': 'episode', 'ylabel': 'V'})
+            vis.update_window_opts('mean_entropy', opts={'title': 'Mean entropy', 'xlabel': 'episode', 'ylabel': 'entropy'})
+            vis.update_window_opts('value_loss', opts={'title': 'Value(critic) loss', 'xlabel': 'episode', 'ylabel': 'loss'})
+            vis.update_window_opts('policy_loss', opts={'title': 'Policy(actor) loss', 'xlabel': 'episode', 'ylabel': 'loss'})
 
     #for thread in agent_threads:
     #    thread.join()

@@ -20,7 +20,7 @@ class Agent():
     def letsgo(self, GlobalACmodel, optimizer, lock, sender, MAX_EPISODES, MAX_ACTIONS, DISCOUNT_FACTOR, STEPS):
 
         for episode in range(1, MAX_EPISODES+1):
-            print("cpu:", self.cpu, ", Episode:", episode)
+            print("cpu thread:", self.cpu+1, ", episode:", episode)
 
             self.LocalACmodel.load_state_dict(GlobalACmodel.state_dict())
 
@@ -63,9 +63,7 @@ class Agent():
                 episode_reward += reward
 
                 if len(episode_buffer) == STEPS and not(done):
-                    #print(self.train(episode_buffer, DISCOUNT_FACTOR, optimizer, lock, GlobalACmodel))
-                    #value_loss, policy_loss = self.train(episode_buffer, DISCOUNT_FACTOR, optimizer, lock, GlobalACmodel)
-                    self.train(episode_buffer, DISCOUNT_FACTOR, optimizer, lock, GlobalACmodel)
+                    value_loss, policy_loss = self.train(episode_buffer, DISCOUNT_FACTOR, optimizer, lock, GlobalACmodel)
                     episode_buffer = []
 
                 if done:
@@ -75,8 +73,7 @@ class Agent():
                     break
 
             if len(episode_buffer) != 0:
-                #value_loss, policy_loss = self.train(episode_buffer, DISCOUNT_FACTOR, optimizer, lock, GlobalACmodel)
-                self.train(episode_buffer, DISCOUNT_FACTOR, optimizer, lock, GlobalACmodel)
+                value_loss, policy_loss = self.train(episode_buffer, DISCOUNT_FACTOR, optimizer, lock, GlobalACmodel)
 
             sender.send((episode, episode_reward, episode_length, episode_mean_value, episode_mean_entropy,
                          value_loss, policy_loss, self.cpu, False))
@@ -121,20 +118,21 @@ class Agent():
         with lock:
             optimizer.zero_grad()
 
-            # 0.5 - value loss coef
-            #print("Policy loss:", policy_loss)
-            #print("Value loss:", value_loss)
-            Loss = policy_loss + 0.5 * value_loss
-            #print("Loss:", Loss)
-            #print()
-            Loss.backward()
+        # 0.5 - value loss coef
+        #print("Policy loss:", policy_loss)
+        #print("Value loss:", value_loss)
+        Loss = policy_loss + 0.5 * value_loss
+        #print("Loss:", Loss)
+        #print()
+        Loss.backward()
 
-            # 50 - max grad norm
-            torch.nn.utils.clip_grad_norm_(self.LocalACmodel.parameters(), 50)
+        # 50 - max grad norm
+        torch.nn.utils.clip_grad_norm_(self.LocalACmodel.parameters(), 50)
 
+        with lock:
             for param, shared_param in zip(self.LocalACmodel.parameters(), GlobalACmodel.parameters()):
                 if shared_param.grad is not None:
-                    return
+                    break
                 shared_param._grad = param.grad
 
             optimizer.step()
