@@ -20,14 +20,18 @@ class ActorCriticModel(torch.nn.Module):
         self.ActorCritic = torch.nn.Sequential(
             torch.nn.Conv2d(1, 32, 3, stride=2, padding=1),
             torch.nn.ELU(),
-            torch.nn.Conv2d(32, 64, 3, stride=2, padding=1),
+            torch.nn.Conv2d(32, 32, 3, stride=2, padding=1),
             torch.nn.ELU(),
-            torch.nn.Conv2d(64, 64, 3, stride=1, padding=1),
+            torch.nn.Conv2d(32, 32, 3, stride=2, padding=1),
+            torch.nn.ELU(),
+            torch.nn.Conv2d(32, 32, 3, stride=2, padding=1),
             torch.nn.ELU(),
             Flatten(),
-            torch.nn.Linear(9 * 6 * 64 * 10, 256),
-            torch.nn.ELU()
         )
+
+        self.LSTM = torch.nn.LSTMCell(32 * 5 * 7, 256)
+        self.LSTM.bias_ih.data.fill_(0)
+        self.LSTM.bias_hh.data.fill_(0)
 
         self.Policy = torch.nn.Linear(256, 6)
         self.Policy.weight.data = normalized_initializer(self.Policy.weight.data, 0.01)
@@ -39,7 +43,9 @@ class ActorCriticModel(torch.nn.Module):
 
 
     def forward(self, input):
-        data = self.ActorCritic(input)
-        Logit = self.Policy(data)
-        Value = self.Value(data)
-        return Logit, Value
+        data, (hx, cx) = input
+        data = self.ActorCritic(data)
+        hx, cx = self.LSTM(data, (hx, cx))
+        Logit = self.Policy(hx)
+        Value = self.Value(hx)
+        return Logit, Value, (hx, cx)

@@ -15,7 +15,7 @@ if __name__ == '__main__':
     MAX_EPISODES = 100
     MAX_ACTIONS = 1000
     DISCOUNT_FACTOR = 0.99
-    STEPS = 16
+    STEPS = 32
 
     GlobalACmodel = ActorCriticModel()
     GlobalACmodel.share_memory()
@@ -79,6 +79,6 @@ if __name__ == '__main__':
             vis.update_window_opts('value_loss', opts={'title': 'Value(critic) loss', 'xlabel': 'episode', 'ylabel': 'loss'})
             vis.update_window_opts('policy_loss', opts={'title': 'Policy(actor) loss', 'xlabel': 'episode', 'ylabel': 'loss'})
 
-    #for thread in agent_threads:
-    #    thread.join()
+    for thread in agent_threads:
+        thread.join()
 
