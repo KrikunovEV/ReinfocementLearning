@@ -20,11 +20,9 @@ if __name__ == '__main__':
     GlobalACmodel = ActorCriticModel()
     GlobalACmodel.share_memory()
 
-    optimizer = torch.optim.Adam(GlobalACmodel.parameters(), lr=0.0001)
-
     lock = Lock()
 
-    num_cpu = 4
+    num_cpu = 1
     agents = []
     for cpu in range(num_cpu):
         agents.append(Agent(cpu))
@@ -33,7 +31,7 @@ if __name__ == '__main__':
 
     agent_threads = []
     for agent in agents:
-        thread = Process(target=agent.letsgo, args=(GlobalACmodel, optimizer, lock, sender,
+        thread = Process(target=agent.letsgo, args=(GlobalACmodel, lock, sender,
                                                       MAX_EPISODES, MAX_ACTIONS, DISCOUNT_FACTOR, STEPS,))
         thread.start()
         agent_threads.append(thread)
