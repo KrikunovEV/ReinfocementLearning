@@ -17,9 +17,10 @@ class Agent():
         self.env = gym.make('SpaceInvaders-v0')
 
 
-    def letsgo(self, GlobalACmodel, lock, sender, MAX_EPISODES, MAX_ACTIONS, DISCOUNT_FACTOR, STEPS, optimizer):
+    def letsgo(self, GlobalACmodel, lock, sender, MAX_EPISODES, MAX_ACTIONS, DISCOUNT_FACTOR, STEPS):
 
         optimizer = torch.optim.Adam(GlobalACmodel.parameters(), lr=0.0001)
+        self.LocalACmodel.train()
 
         for episode in range(1, MAX_EPISODES+1):
             print("cpu thread:", self.cpu+1, ", episode:", episode)
@@ -35,20 +36,18 @@ class Agent():
             episode_values = []
             episode_entropies = []
 
-            value_loss = 0
-            policy_loss = 0
-
             obs = Preprocess(self.env.reset())
 
-            hx = torch.zeros(1, 256)
-            cx = torch.zeros(1, 256)
+            #hx = torch.zeros(1, 256)
+            #cx = torch.zeros(1, 256)
 
             for action_count in range(MAX_ACTIONS):
 
                 if self.cpu == 0:
                     self.env.render()
 
-                logit, value, (hx, cx) = self.LocalACmodel((torch.Tensor(obs[np.newaxis, :, :, :]), (hx, cx)))
+                #logit, value, (hx, cx) = self.LocalACmodel((torch.Tensor(obs[np.newaxis, :, :, :]), (hx, cx)))
+                logit, value = self.LocalACmodel(torch.Tensor(obs[np.newaxis, :, :, :]))
                 episode_values.append(torch.Tensor(value).detach().numpy())
 
                 prob = torch.nn.functional.softmax(logit, dim=-1)
@@ -68,10 +67,10 @@ class Agent():
                 episode_reward += reward
 
                 if len(episode_buffer) == STEPS and not(done):
-                    value_loss, policy_loss = self.train(episode_buffer, DISCOUNT_FACTOR, optimizer, hx, cx, GlobalACmodel, lock, done)
+                    value_loss, policy_loss = self.train(episode_buffer, DISCOUNT_FACTOR, optimizer, GlobalACmodel, lock, done)
                     episode_buffer = []
-                    hx.detach()
-                    cx.detach()
+                    #hx.detach()
+                    #cx.detach()
 
                 if done:
                     episode_length = action_count
@@ -80,7 +79,7 @@ class Agent():
                     break
 
             if len(episode_buffer) != 0:
-                value_loss, policy_loss = self.train(episode_buffer, DISCOUNT_FACTOR, optimizer, hx, cx, GlobalACmodel, lock, done)
+                value_loss, policy_loss = self.train(episode_buffer, DISCOUNT_FACTOR, optimizer, GlobalACmodel, lock, done)
 
             sender.send((episode, episode_reward, episode_length, episode_mean_value, episode_mean_entropy,
                          value_loss, policy_loss, self.cpu, False))
@@ -89,7 +88,7 @@ class Agent():
         sender.send((0, 0, 0, 0, 0, 0, 0, self.cpu, True))
 
 
-    def train(self, buffer, DISCOUNT_FACTOR, optimizer, hx, cx, GlobalACmodel, lock, done):
+    def train(self, buffer, DISCOUNT_FACTOR, optimizer, GlobalACmodel, lock, done):
 
         rewards = [row[0] for row in buffer]
         obs_next = [row[1] for row in buffer]
@@ -99,7 +98,8 @@ class Agent():
 
         R = torch.zeros(1, 1)
         if not done:
-            _, value_next, _ = self.LocalACmodel((torch.Tensor(np.array((obs_next[-1]))[np.newaxis, :, :, :]), (hx, cx)))
+            #_, value_next, _ = self.LocalACmodel((torch.Tensor(np.array((obs_next[-1]))[np.newaxis, :, :, :]), (hx, cx)))
+            _, value_next = self.LocalACmodel(torch.Tensor(np.array(obs_next[-1])[np.newaxis, :, :, :]))
             R = value_next.detach()
 
         values.append(R)

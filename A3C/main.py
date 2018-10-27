@@ -12,8 +12,8 @@ if __name__ == '__main__':
 
     vis = Visdom()
 
-    MAX_EPISODES = 100
-    MAX_ACTIONS = 1000
+    MAX_EPISODES = 500
+    MAX_ACTIONS = 1500
     DISCOUNT_FACTOR = 0.99
     STEPS = 32
 
@@ -22,7 +22,7 @@ if __name__ == '__main__':
 
     lock = Lock()
 
-    num_cpu = 1
+    num_cpu = 4
     agents = []
     for cpu in range(num_cpu):
         agents.append(Agent(cpu))
@@ -54,7 +54,7 @@ if __name__ == '__main__':
         if exit:
             break
 
-        if episode % 100 == 0:
+        if episode % 50 == 0:
             with lock:
                 torch.save(GlobalACmodel.state_dict(), 'trainModels/episodes_' + str(episode) + '.pt')
 
