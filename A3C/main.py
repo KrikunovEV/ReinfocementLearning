@@ -56,7 +56,7 @@ if __name__ == '__main__':
 
         if episode % 50 == 0:
             with lock:
-                torch.save(GlobalACmodel.state_dict(), 'trainModels/episodes_' + str(episode) + '.pt')
+                torch.save(GlobalACmodel.state_dict(), 'trainModels2/episodes_' + str(episode) + '.pt')
 
         if done:
             continue
