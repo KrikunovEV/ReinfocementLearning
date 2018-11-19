@@ -27,7 +27,7 @@ if __name__ == '__main__':
     for cpu in range(num_cpu):
         agents.append(Agent(cpu))
 
-    reciver, sender = Pipe()
+    receiver, sender = Pipe()
 
     agent_threads = []
     for agent in agents:
@@ -41,7 +41,7 @@ if __name__ == '__main__':
     episode = 0
     while True:
         (epi, episode_reward, episode_length, episode_mean_value, episode_mean_entropy,
-         value_loss, policy_loss, cpu, done) = reciver.recv()
+         value_loss, policy_loss, cpu, done) = receiver.recv()
         episode += 1
         dones[cpu] = done
 
