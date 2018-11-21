@@ -6,6 +6,7 @@ import numpy as np
 
 def Preprocess(img):
     img = img[::2, ::2]
+    img = img[10:len(img) - 7]
     return np.mean(img, axis=2)[np.newaxis,:,:].astype(np.float32) / 255.0
 
 
@@ -17,9 +18,11 @@ class Agent():
         self.env = gym.make('SpaceInvaders-v0')
 
 
-    def letsgo(self, GlobalACmodel, lock, sender, MAX_EPISODES, MAX_ACTIONS, DISCOUNT_FACTOR, STEPS):
+    def letsgo(self, GlobalACmodel, optimizer, lock, sender, MAX_EPISODES, MAX_ACTIONS, DISCOUNT_FACTOR, STEPS):
 
-        optimizer = torch.optim.Adam(GlobalACmodel.parameters(), lr=0.001)
+        self.optimizer = optimizer
+        self.GlobalACmodel = GlobalACmodel
+        self.lock = lock
 
         for episode in range(1, MAX_EPISODES+1):
             print("cpu thread:", self.cpu+1, ", episode:", episode)
@@ -68,7 +71,7 @@ class Agent():
                 episode_entropies.append(entropy.item())
 
                 if len(episode_buffer) == STEPS and not(done):
-                    value_loss, policy_loss = self.train(episode_buffer, obs, done, DISCOUNT_FACTOR, optimizer, GlobalACmodel, lock)
+                    value_loss, policy_loss = self.train(episode_buffer, done, DISCOUNT_FACTOR)
                     episode_buffer = []
 
                 if done:
@@ -76,7 +79,7 @@ class Agent():
                     break
 
             if len(episode_buffer) != 0:
-                value_loss, policy_loss = self.train(episode_buffer, obs, done, DISCOUNT_FACTOR, optimizer, GlobalACmodel, lock)
+                value_loss, policy_loss = self.train(episode_buffer, done, DISCOUNT_FACTOR)
 
             sender.send((episode, episode_reward, episode_length, np.mean(episode_values), np.mean(episode_entropies),
                          value_loss, policy_loss, self.cpu, False))
@@ -85,46 +88,43 @@ class Agent():
         sender.send((0, 0, 0, 0, 0, 0, 0, self.cpu, True))
 
 
-    def train(self, buffer, last_obs, done, DISCOUNT_FACTOR, optimizer, GlobalACmodel, lock):
+    def train(self, buffer, done, DISCOUNT_FACTOR):
 
         rewards = [row[0] for row in buffer]
         entropies = [row[1] for row in buffer]
         values = [row[2] for row in buffer]
         log_probs = [row[3] for row in buffer]
 
-        R = torch.Tensor([[0]])
+        R = 0
         if not done:
             R = values[-1]
 
-        policy_loss = torch.Tensor([[0]])
-        value_loss = torch.Tensor([[0]])
-
-        for i in reversed(range(len(rewards) - 1)):
-
+        for i in reversed(range(len(rewards))):
             R = rewards[i] + DISCOUNT_FACTOR * R
-            Advantage = R - values[i]
 
-            # policy update
-            policy_loss = policy_loss - log_probs[i] * Advantage.detach() - 0.01 * entropies[i]
+        Advantage = R - values[0]
 
-            # value update
-            value_loss = value_loss + 0.5 * Advantage.pow(2)
+        # policy update
+        policy_loss = log_probs[0] * Advantage.detach() - 0.01 * entropies[0]
 
-        with lock:
-            optimizer.zero_grad()
+        # value update
+        value_loss = 0.5 * Advantage.pow(2)
+
+        with self.lock:
+            self.optimizer.zero_grad()
 
             # 0.5 - value loss coef
-            (policy_loss + 0.5 * value_loss).backward()
+            (policy_loss + value_loss).backward()
 
             # 40 - max grad norm
             torch.nn.utils.clip_grad_norm_(self.LocalACmodel.parameters(), 40)
 
-            for param, shared_param in zip(self.LocalACmodel.parameters(), GlobalACmodel.parameters()):
+            for param, shared_param in zip(self.LocalACmodel.parameters(), self.GlobalACmodel.parameters()):
                 #if shared_param.grad is not None:
                 #    break
                 #shared_param._grad = param.grad
                 shared_param.grad = param.grad
 
-            optimizer.step()
+            self.optimizer.step()
 
         return value_loss, policy_loss

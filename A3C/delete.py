@@ -1,6 +1,15 @@
-import visdom
+import gym
+import matplotlib.pyplot as plt
+import numpy as np
 
-vis = visdom.Visdom()
+def Preprocess(img):
+    img = img[::2, ::2]
+    img = img[10:len(img)-7]
+    return np.mean(img, axis=2)[:,:].astype(np.float32) / 255.0
 
-for episode in range(100):
-    vis.line(episode**2, episode, update='append', win='reward')
+env = gym.make('SpaceInvaders-v0')
+
+obs = Preprocess(env.reset())
+
+plt.imshow(obs, cmap='gray')
+plt.show()

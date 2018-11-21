@@ -11,7 +11,7 @@ MAX_EPISODES = 500
 MAX_ACTIONS = 2000
 
 model = ActorCriticModel()
-model.load_state_dict(torch.load("trainModels2/episodes_100.pt"))
+model.load_state_dict(torch.load("trainModels3/episodes_800.pt"))
 model.eval()
 
 for episode in range(1, MAX_EPISODES):

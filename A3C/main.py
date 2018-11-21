@@ -4,21 +4,22 @@ from ActorCriticModel import ActorCriticModel
 from Agent import Agent
 from torch.multiprocessing import Process, Pipe, Lock
 from visdom import Visdom
-
+from SharedOptim import SharedAdam
 
 if __name__ == '__main__':
     os.environ["OMP_NUM_THREADS"] = "1"
-    os.environ['CUDA_VISIBLE_DEVICES'] = ""
 
     vis = Visdom()
 
-    MAX_EPISODES = 500
-    MAX_ACTIONS = 1500
+    MAX_EPISODES = 2500
+    MAX_ACTIONS = 2000
     DISCOUNT_FACTOR = 0.99
-    STEPS = 32
+    STEPS = 20
 
     GlobalACmodel = ActorCriticModel()
     GlobalACmodel.share_memory()
+
+    optimizer = SharedAdam(GlobalACmodel.parameters(), lr=0.0007)
 
     lock = Lock()
 
@@ -31,7 +32,7 @@ if __name__ == '__main__':
 
     agent_threads = []
     for agent in agents:
-        thread = Process(target=agent.letsgo, args=(GlobalACmodel, lock, sender,
+        thread = Process(target=agent.letsgo, args=(GlobalACmodel, optimizer, lock, sender,
                                                       MAX_EPISODES, MAX_ACTIONS, DISCOUNT_FACTOR, STEPS,))
         thread.start()
         agent_threads.append(thread)
@@ -54,9 +55,9 @@ if __name__ == '__main__':
         if exit:
             break
 
-        if episode % 50 == 0:
+        if episode % 250 == 0:
             with lock:
-                torch.save(GlobalACmodel.state_dict(), 'trainModels2/episodes_' + str(episode) + '.pt')
+                torch.save(GlobalACmodel.state_dict(), 'trainModels4/episodes_' + str(episode) + '.pt')
 
         if done:
             continue

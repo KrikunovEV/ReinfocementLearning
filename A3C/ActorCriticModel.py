@@ -20,12 +20,14 @@ class ActorCriticModel(torch.nn.Module):
         self.ActorCritic = torch.nn.Sequential(
             torch.nn.Conv2d(1, 32, 8, stride=4),
             torch.nn.ReLU(),
-            torch.nn.Conv2d(32, 64, 4, stride=2),
+            torch.nn.Conv2d(32, 32, 4, stride=2),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(32, 64, 4, stride=1),
             torch.nn.ReLU(),
             torch.nn.Conv2d(64, 64, 3, stride=1),
             torch.nn.ReLU(),
             Flatten(),
-            torch.nn.Linear(6 * 9 * 64, 512),
+            torch.nn.Linear(3 * 4 * 64, 512),
             torch.nn.ReLU()
         )
 
