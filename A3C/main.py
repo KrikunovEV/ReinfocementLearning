@@ -5,6 +5,7 @@ from Agent import Agent
 from torch.multiprocessing import Process, Pipe, Lock
 from visdom import Visdom
 from SharedOptim import SharedAdam
+from SharedRMSProp import SharedRMSprop
 
 if __name__ == '__main__':
     os.environ["OMP_NUM_THREADS"] = "1"
@@ -16,10 +17,13 @@ if __name__ == '__main__':
     DISCOUNT_FACTOR = 0.99
     STEPS = 20
 
-    GlobalACmodel = ActorCriticModel()
-    GlobalACmodel.share_memory()
+    GlobalModel = ActorCriticModel()
+    GlobalModel.share_memory()
 
-    optimizer = SharedAdam(GlobalACmodel.parameters(), lr=0.0007)
+    CriticOptimizer = SharedRMSprop(GlobalModel.getCriticParameters(), lr=0.00035, alpha=0.99, eps=0.1)
+    ActorOptimizer = SharedRMSprop(GlobalModel.getActorParameters(), lr=0.0007, alpha=0.99, eps=0.1)
+    CriticOptimizer.share_memory()
+    ActorOptimizer.share_memory()
 
     lock = Lock()
 
@@ -32,7 +36,7 @@ if __name__ == '__main__':
 
     agent_threads = []
     for agent in agents:
-        thread = Process(target=agent.letsgo, args=(GlobalACmodel, optimizer, lock, sender,
+        thread = Process(target=agent.letsgo, args=(GlobalModel, CriticOptimizer, ActorOptimizer, lock, sender,
                                                       MAX_EPISODES, MAX_ACTIONS, DISCOUNT_FACTOR, STEPS,))
         thread.start()
         agent_threads.append(thread)
@@ -57,7 +61,7 @@ if __name__ == '__main__':
 
         if episode % 250 == 0:
             with lock:
-                torch.save(GlobalACmodel.state_dict(), 'trainModels4/episodes_' + str(episode) + '.pt')
+                torch.save(GlobalModel.state_dict(), 'trainModels_Breakout/episodes_' + str(episode) + '.pt')
 
         if done:
             continue
