@@ -2,6 +2,7 @@ from ActorCriticModel import ActorCriticModel
 import gym
 import torch
 import numpy as np
+from random import randint
 
 
 def Preprocess(img):
@@ -14,21 +15,23 @@ class Agent():
 
     def __init__(self, cpu):
         self.cpu = cpu
-        self.LocalACmodel = ActorCriticModel()
-        self.env = gym.make('SpaceInvaders-v0')
+        self.LocalModel = ActorCriticModel()
+        self.env = gym.make('Breakout-v0')
 
 
-    def letsgo(self, GlobalACmodel, optimizer, lock, sender, MAX_EPISODES, MAX_ACTIONS, DISCOUNT_FACTOR, STEPS):
+    def letsgo(self, GlobalModel, CriticOptimizer, ActorOptimizer, lock, sender,
+               MAX_EPISODES, MAX_ACTIONS, DISCOUNT_FACTOR, STEPS):
 
-        self.optimizer = optimizer
-        self.GlobalACmodel = GlobalACmodel
+        self.CriticOptimizer = CriticOptimizer
+        self.ActorOptimizer = ActorOptimizer
+        self.GlobalModel = GlobalModel
         self.lock = lock
 
         for episode in range(1, MAX_EPISODES+1):
             print("cpu thread:", self.cpu+1, ", episode:", episode)
 
             with lock:
-                self.LocalACmodel.load_state_dict(GlobalACmodel.state_dict())
+                self.LocalModel.load_state_dict(GlobalModel.state_dict())
 
             episode_length = 0
             episode_reward = 0
@@ -40,14 +43,21 @@ class Agent():
             episode_values = []
             episode_entropies = []
 
-            obs = Preprocess(self.env.reset())
+            self.env.reset()
+
+            obs = None
+
+            for _ in range(randint(1, 30)):
+                obs, _, _, _ = self.env.step(1)
+
+            obs = Preprocess(obs)
 
             for action_count in range(MAX_ACTIONS):
 
                 if self.cpu == 0:
                     self.env.render()
 
-                logit, value = self.LocalACmodel(torch.Tensor(obs[np.newaxis, :, :, :]))
+                logit, value = self.LocalModel(torch.Tensor(obs[np.newaxis, :, :, :]))
 
                 prob = torch.nn.functional.softmax(logit, dim=-1)
                 log_prob = torch.nn.functional.log_softmax(logit, dim=-1)
@@ -57,7 +67,6 @@ class Agent():
                 action = np.random.choice(prob_np, 1, p=prob_np)
                 action = np.where(prob_np == action)[0][0]
                 log_prob = log_prob[0, action]
-                #action = prob.multinomial(num_samples=1).detach()
 
                 obs_next, reward, done, info = self.env.step(action)
                 obs_next = Preprocess(obs_next)
@@ -111,20 +120,22 @@ class Agent():
         value_loss = 0.5 * Advantage.pow(2)
 
         with self.lock:
-            self.optimizer.zero_grad()
+            self.CriticOptimizer.zero_grad()
+            self.ActorOptimizer.zero_grad()
 
             # 0.5 - value loss coef
             (policy_loss + value_loss).backward()
 
             # 40 - max grad norm
-            torch.nn.utils.clip_grad_norm_(self.LocalACmodel.parameters(), 40)
+            torch.nn.utils.clip_grad_norm_(self.LocalModel.parameters(), 40)
 
-            for param, shared_param in zip(self.LocalACmodel.parameters(), self.GlobalACmodel.parameters()):
+            for param, shared_param in zip(self.LocalModel.parameters(), self.GlobalModel.parameters()):
                 #if shared_param.grad is not None:
                 #    break
                 #shared_param._grad = param.grad
                 shared_param.grad = param.grad
 
-            self.optimizer.step()
+            self.CriticOptimizer.step()
+            self.ActorOptimizer.step()
 
         return value_loss, policy_loss
