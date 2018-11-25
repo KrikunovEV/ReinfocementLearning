@@ -1,6 +1,5 @@
 import torch
 
-
 class A2CModel(torch.nn.Module):
 
     def __init__(self):

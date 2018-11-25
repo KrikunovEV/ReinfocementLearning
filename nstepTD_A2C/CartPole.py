@@ -14,10 +14,8 @@ vis = Visdom()
 
 model = A2CModel()
 
-CriticOptimizer = torch.optim.Adam(model.CriticParameters(), lr=0.005)#torch.optim.RMSprop(model.CriticParameters(), lr=0.0007, alpha=0.99, eps=0.1)
-ActorOptimizer = torch.optim.Adam(model.ActorParameters(), lr=0.001)#torch.optim.RMSprop(model.ActorParameters(), lr=0.00035, alpha=0.99, eps=0.1)
-#Optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
-
+CriticOptimizer = torch.optim.Adam(model.CriticParameters(), lr=0.005)
+ActorOptimizer = torch.optim.Adam(model.ActorParameters(), lr=0.001)
 
 reward_layout = dict(title="Rewards", xaxis={'title':'episode'}, yaxis={'title':'reward'})
 policy_layout = dict(title="Policy loss", xaxis={'title':'n-step iter'}, yaxis={'title':'loss'})
@@ -26,6 +24,7 @@ value_layout = dict(title="Value loss", xaxis={'title':'n-step iter'}, yaxis={'t
 REWARDS_DATA = []
 VALUELOSS_DATA = []
 POLICYLOSS_DATA = []
+EPISODES_DATA = []
 
 REWARDS = []
 VALUELOSS = []
@@ -61,7 +60,8 @@ def Train(values, log_probs, entropies, rewards, obs, done):
     ActorOptimizer.step()
     CriticOptimizer.step()
 
-    return policy_loss, value_loss
+    POLICYLOSS.append(policy_loss)
+    VALUELOSS.append(value_loss)
 
 
 for episode in range(MAX_EPISODES):
@@ -84,7 +84,6 @@ for episode in range(MAX_EPISODES):
         prob_np = prob.detach().numpy()
         action = np.random.choice(prob_np, 1, p=prob_np)
         action = np.where(prob_np == action)[0][0]
-        print(prob)
         log_prob = log_prob[action]
 
         obs, reward, done, info = env.step(action)
@@ -97,20 +96,26 @@ for episode in range(MAX_EPISODES):
 
         REWARD += reward
 
+        if done:
+            REWARDS.append(REWARD)
+            break
+
         step += 1
         if step % T_STEPS == 0:
             Train(values, log_probs, entropies, rewards, obs, done)
             values, log_probs, entropies, rewards = [], [], [], []
 
+    Train(values, log_probs, entropies, rewards, obs, done)
 
-    if done:
-        vis.line([REWARD], [episode], update='append', win='reward', name="every")
-        vis.update_window_opts('reward', opts={'title': 'Episode rewards', 'xlabel': 'episode', 'ylabel': 'reward'})
+    if episode % 10 == 0:
+        REWARDS_DATA.append(np.mean(REWARDS[len(REWARDS)-10:]))
 
-    vis.line([policy_loss.item()], [episode], update='append', win='policy')
-    vis.line([value_loss.item()], [episode], update='append', win='value')
-    vis.update_window_opts('policy', opts={'title': 'policy loss', 'xlabel': 'iter', 'ylabel': 'loss'})
-    vis.update_window_opts('value', opts={'title': 'value loss', 'xlabel': 'iter', 'ylabel': 'loss'})
+    EPISODES_DATA.append(episode)
+
+    trace = dict(x=EPISODES_DATA, y=REWARDS,  type='custom', mode="lines", name='reward')
+    trace2 = dict(x=EPISODES_DATA[::10], y=REWARDS_DATA,
+                  line={'color': 'red'}, type='custom', mode="lines", name='mean reward')
+    vis._send({'data':[trace, trace2], 'layout':reward_layout, 'win':'rewardwin'})
 
 
 env.close()

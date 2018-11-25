@@ -20,10 +20,12 @@ if __name__ == '__main__':
     GlobalModel = ActorCriticModel()
     GlobalModel.share_memory()
 
-    CriticOptimizer = SharedRMSprop(GlobalModel.getCriticParameters(), lr=0.00035, alpha=0.99, eps=0.1)
-    ActorOptimizer = SharedRMSprop(GlobalModel.getActorParameters(), lr=0.0007, alpha=0.99, eps=0.1)
-    CriticOptimizer.share_memory()
-    ActorOptimizer.share_memory()
+    #CriticOptimizer = SharedRMSprop(GlobalModel.getCriticParameters(), lr=0.00035, alpha=0.99, eps=0.1)
+    #ActorOptimizer = SharedRMSprop(GlobalModel.getActorParameters(), lr=0.0007, alpha=0.99, eps=0.1)
+    #CriticOptimizer.share_memory()
+    #ActorOptimizer.share_memory()
+
+
 
     lock = Lock()
 

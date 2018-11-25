@@ -1,17 +1,18 @@
 from Agent import Preprocess
-from ActorCriticModel import ActorCriticModel
+#from ActorCriticModel import ActorCriticModel
+from ActorCriticModel_SpaceInvaders import ActorCriticModel
 import gym
 import numpy as np
 import torch
 
 
-env = gym.make('Breakout-v0')
+env = gym.make('SpaceInvaders-v0')
 
 MAX_EPISODES = 500
 MAX_ACTIONS = 2000
 
 model = ActorCriticModel()
-model.load_state_dict(torch.load("trainModels_Breakout/episodes_1250.pt"))
+model.load_state_dict(torch.load("trainModels4/episodes_500.pt"))
 model.eval()
 
 for episode in range(1, MAX_EPISODES):
@@ -25,10 +26,10 @@ for episode in range(1, MAX_EPISODES):
 
         prob, value = model(torch.Tensor(obs[np.newaxis,:,:,:]))
         prob = torch.nn.functional.softmax(prob, dim=-1)
-        #prob_np = prob.detach().numpy()[0]
-        #action = np.random.choice(prob_np, 1, p=prob_np)
-        #action = np.where(prob_np == action)[0][0]
-        action = torch.argmax(prob)
+        prob_np = prob.detach().numpy()[0]
+        action = np.random.choice(prob_np, 1, p=prob_np)
+        action = np.where(prob_np == action)[0][0]
+        #action = torch.argmax(prob)
 
         # Make a step
         obs, reward, done, info = env.step(action)
