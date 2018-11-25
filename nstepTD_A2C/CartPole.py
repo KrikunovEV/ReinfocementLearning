@@ -30,6 +30,9 @@ REWARDS = []
 VALUELOSS = []
 POLICYLOSS = []
 
+nstepIter = 0
+NSTEPITER = []
+
 
 def Train(values, log_probs, entropies, rewards, obs, done):
 
@@ -37,8 +40,6 @@ def Train(values, log_probs, entropies, rewards, obs, done):
     if not done:
         _, G = model(torch.Tensor(obs))
         G = G.detach()
-    else:
-        REWARDS.append(REWARD)
 
     value_loss = 0
     policy_loss = 0
@@ -60,8 +61,24 @@ def Train(values, log_probs, entropies, rewards, obs, done):
     ActorOptimizer.step()
     CriticOptimizer.step()
 
-    POLICYLOSS.append(policy_loss)
-    VALUELOSS.append(value_loss)
+    POLICYLOSS.append(policy_loss.item())
+    VALUELOSS.append(value_loss.item())
+
+    NSTEPITER.append(nstepIter)
+    if nstepIter % 10 == 0:
+        VALUELOSS_DATA.append(np.mean(VALUELOSS[len(VALUELOSS) - 10:]))
+        POLICYLOSS_DATA.append(np.mean(POLICYLOSS[len(POLICYLOSS) - 10:]))
+
+    trace_value = dict(x=NSTEPITER, y=VALUELOSS, type='custom', mode="lines", name='loss')
+    trace_policy = dict(x=NSTEPITER, y=POLICYLOSS, type='custom', mode="lines", name='loss')
+
+    trace2_value = dict(x=NSTEPITER[::10], y=VALUELOSS_DATA,
+                  line={'color': 'red', 'width': 4}, type='custom', mode="lines", name='mean loss')
+    trace2_policy = dict(x=NSTEPITER[::10], y=POLICYLOSS_DATA,
+                        line={'color': 'red', 'width': 4}, type='custom', mode="lines", name='mean loss')
+
+    vis._send({'data': [trace_value, trace2_value], 'layout': value_layout, 'win': 'valuewin'})
+    vis._send({'data': [trace_policy, trace2_policy], 'layout': policy_layout, 'win': 'policywin'})
 
 
 for episode in range(MAX_EPISODES):
@@ -102,9 +119,11 @@ for episode in range(MAX_EPISODES):
 
         step += 1
         if step % T_STEPS == 0:
+            nstepIter += 1
             Train(values, log_probs, entropies, rewards, obs, done)
             values, log_probs, entropies, rewards = [], [], [], []
 
+    nstepIter += 1
     Train(values, log_probs, entropies, rewards, obs, done)
 
     if episode % 10 == 0:
@@ -114,7 +133,7 @@ for episode in range(MAX_EPISODES):
 
     trace = dict(x=EPISODES_DATA, y=REWARDS,  type='custom', mode="lines", name='reward')
     trace2 = dict(x=EPISODES_DATA[::10], y=REWARDS_DATA,
-                  line={'color': 'red'}, type='custom', mode="lines", name='mean reward')
+                  line={'color': 'red', 'width': 4}, type='custom', mode="lines", name='mean reward')
     vis._send({'data':[trace, trace2], 'layout':reward_layout, 'win':'rewardwin'})
 
 
