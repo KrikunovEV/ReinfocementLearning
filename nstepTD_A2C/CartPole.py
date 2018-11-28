@@ -83,6 +83,9 @@ def Train(values, log_probs, entropies, rewards, obs, done):
 
 for episode in range(MAX_EPISODES):
 
+    if episode % 100 == 0 and episode != 0:
+        torch.save(model.state_dict(), 'models/episodes_' + str(episode) + '.pt')
+
     obs = env.reset()
     REWARD = 0
     values, log_probs, entropies, rewards = [], [], [], []
