@@ -14,8 +14,8 @@ vis = Visdom()
 
 model = A2CModel()
 
-CriticOptimizer = torch.optim.Adam(model.CriticParameters(), lr=0.005)
-ActorOptimizer = torch.optim.Adam(model.ActorParameters(), lr=0.001)
+CriticOptimizer = torch.optim.Adam(model.CriticParameters(), lr=0.01)
+ActorOptimizer = torch.optim.Adam(model.ActorParameters(), lr=0.005)
 
 reward_layout = dict(title="Rewards", xaxis={'title':'episode'}, yaxis={'title':'reward'})
 policy_layout = dict(title="Policy loss", xaxis={'title':'n-step iter'}, yaxis={'title':'loss'})
@@ -49,7 +49,7 @@ def Train(values, log_probs, entropies, rewards, obs, done):
         Advantage = G - values[i]
 
         value_loss += 0.5 * Advantage.pow(2)
-        policy_loss -= Advantage * log_probs[i]  # - 0.01 * entropies[i]
+        policy_loss -= Advantage * log_probs[i] + 0.01 * entropies[i]
 
     Loss = policy_loss + value_loss
 
@@ -57,6 +57,8 @@ def Train(values, log_probs, entropies, rewards, obs, done):
     CriticOptimizer.zero_grad()
 
     Loss.backward()
+
+    #torch.nn.utils.clip_grad_norm_(model.parameters(), 40)
 
     ActorOptimizer.step()
     CriticOptimizer.step()
@@ -83,8 +85,8 @@ def Train(values, log_probs, entropies, rewards, obs, done):
 
 for episode in range(MAX_EPISODES):
 
-    if episode % 100 == 0 and episode != 0:
-        torch.save(model.state_dict(), 'models/episodes_' + str(episode) + '.pt')
+    #if episode % 100 == 0 and episode != 0:
+        #torch.save(model.state_dict(), 'models/episodes_' + str(episode) + '.pt')
 
     obs = env.reset()
     REWARD = 0
