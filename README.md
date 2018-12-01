@@ -8,9 +8,10 @@ Here You can see the progress of my **Graduate work**.
 3. Detailed information about PySC2 is [here](https://github.com/deepmind/pysc2/blob/master/docs/environment.md);
 
 ### Some useful links:
-1. The main paper A3C [Asynchronous Actor-Critic Agents](https://arxiv.org/pdf/1602.01783.pdf);
-2. [Advantage Actor-Critic](https://hackernoon.com/intuitive-rl-intro-to-advantage-actor-critic-a2c-4ff545978752) in pictures;
-3. [Space Invaders](https://nihit.github.io/resources/spaceinvaders.pdf) with DQN;
+1. From REINFORCE to Advantage Actor-Critic - [the book, chapter 13](http://incompleteideas.net/book/bookdraft2017nov5.pdf)
+2. The main paper A3C [Asynchronous Actor-Critic Agents](https://arxiv.org/pdf/1602.01783.pdf);
+3. [Advantage Actor-Critic](https://hackernoon.com/intuitive-rl-intro-to-advantage-actor-critic-a2c-4ff545978752) in pictures;
+4. [Space Invaders](https://nihit.github.io/resources/spaceinvaders.pdf) with DQN;
 
 ### Can be interesting:
 1. VIN [Value Iteration Network](http://papers.nips.cc/paper/6046-value-iteration-networks.pdf);
