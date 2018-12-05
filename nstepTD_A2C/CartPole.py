@@ -15,7 +15,11 @@ vis = Visdom()
 model = A2CModel()
 
 CriticOptimizer = torch.optim.Adam(model.CriticParameters(), lr=0.01)
+<<<<<<< HEAD
 ActorOptimizer = torch.optim.Adam(model.ActorParameters(), lr=0.001)
+=======
+ActorOptimizer = torch.optim.Adam(model.ActorParameters(), lr=0.005)
+>>>>>>> e739137383ef983d5fb4c042e35571d43c22f14d
 
 reward_layout = dict(title="Rewards", xaxis={'title':'episode'}, yaxis={'title':'reward'})
 policy_layout = dict(title="Policy loss", xaxis={'title':'n-step iter'}, yaxis={'title':'loss'})
@@ -57,6 +61,8 @@ def Train(values, log_probs, entropies, rewards, obs, done):
     CriticOptimizer.zero_grad()
 
     Loss.backward()
+    #torch.nn.utils.clip_grad_norm_(model.parameters(), 40)
+
     #torch.nn.utils.clip_grad_norm_(model.parameters(), 40)
 
     ActorOptimizer.step()
