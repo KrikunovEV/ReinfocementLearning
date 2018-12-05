@@ -12,6 +12,15 @@ class SharedRMSprop(torch.optim.RMSprop):
         for group in self.param_groups:
             for p in group['params']:
                 state = self.state[p]
+
+                if len(state) == 0:
+                    state['step'] = 0
+                    state['square_avg'] = torch.zeros_like(p.data)
+                    if group['momentum'] > 0:
+                        state['momentum_buffer'] = torch.zeros_like(p.data)
+                    if group['centered']:
+                        state['grad_avg'] = torch.zeros_like(p.data)
+
                 state['square_avg'].share_memory_()
                 state['step'].share_memory_()
                 state['grad_avg'].share_memory_()

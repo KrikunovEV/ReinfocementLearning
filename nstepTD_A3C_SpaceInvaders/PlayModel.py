@@ -1,6 +1,6 @@
 from Agent import Preprocess
 #from ActorCriticModel import ActorCriticModel
-from ActorCriticModel_SpaceInvaders import ActorCriticModel
+from ActorCriticModel import ActorCriticModel
 import gym
 import numpy as np
 import torch

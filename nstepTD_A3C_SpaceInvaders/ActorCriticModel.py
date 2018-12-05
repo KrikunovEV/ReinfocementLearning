@@ -1,12 +1,6 @@
 import torch
 
 
-def normalized_initializer(weights, std=1.0):
-    out = torch.randn(weights.size())
-    out *= std / torch.sqrt(out.pow(2).sum(1, keepdim=True))
-    return out
-
-
 class Flatten(torch.nn.Module):
     def forward(self, input):
         return input.view(input.size(0), -1)
@@ -32,12 +26,7 @@ class ActorCriticModel(torch.nn.Module):
         )
 
         self.Policy = torch.nn.Linear(512, 6)
-        self.Policy.weight.data = normalized_initializer(self.Policy.weight.data, 0.01)
-        self.Policy.bias.data.fill_(0)
-
         self.Value = torch.nn.Linear(512, 1)
-        self.Value.weight.data = normalized_initializer(self.Value.weight.data, 1.0)
-        self.Value.bias.data.fill_(0)
 
 
     def forward(self, input):
@@ -45,3 +34,9 @@ class ActorCriticModel(torch.nn.Module):
         Logit = self.Policy(data)
         Value = self.Value(data)
         return Logit, Value
+
+    def getActorParameters(self):
+        return (list(self.ActorCritic.parameters()) + list(self.Policy.parameters()))
+
+    def getCriticParameters(self):
+        return self.Value.parameters()

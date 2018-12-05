@@ -16,7 +16,7 @@ class Agent():
     def __init__(self, cpu):
         self.cpu = cpu
         self.LocalModel = ActorCriticModel()
-        self.env = gym.make('Breakout-v0')
+        self.env = gym.make('SpaceInvaders-v0')
 
 
     def letsgo(self, GlobalModel, CriticOptimizer, ActorOptimizer, lock, sender,
@@ -70,7 +70,7 @@ class Agent():
 
                 obs_next, reward, done, info = self.env.step(action)
                 obs_next = Preprocess(obs_next)
-                reward = max(min(reward, 1), -1)
+                np.clip(reward, -1, 1)
                 episode_reward += reward
 
                 episode_buffer.append([reward, entropy, value, log_prob])
@@ -80,7 +80,7 @@ class Agent():
                 episode_entropies.append(entropy.item())
 
                 if len(episode_buffer) == STEPS and not(done):
-                    value_loss, policy_loss = self.train(episode_buffer, done, DISCOUNT_FACTOR)
+                    value_loss, policy_loss = self.train(episode_buffer, done, obs, DISCOUNT_FACTOR)
                     episode_buffer = []
 
                 if done:
@@ -88,7 +88,7 @@ class Agent():
                     break
 
             if len(episode_buffer) != 0:
-                value_loss, policy_loss = self.train(episode_buffer, done, DISCOUNT_FACTOR)
+                value_loss, policy_loss = self.train(episode_buffer, done, obs, DISCOUNT_FACTOR)
 
             sender.send((episode, episode_reward, episode_length, np.mean(episode_values), np.mean(episode_entropies),
                          value_loss, policy_loss, self.cpu, False))
@@ -97,27 +97,27 @@ class Agent():
         sender.send((0, 0, 0, 0, 0, 0, 0, self.cpu, True))
 
 
-    def train(self, buffer, done, DISCOUNT_FACTOR):
+    def train(self, buffer, done, obs, DISCOUNT_FACTOR):
 
         rewards = [row[0] for row in buffer]
         entropies = [row[1] for row in buffer]
         values = [row[2] for row in buffer]
         log_probs = [row[3] for row in buffer]
 
-        R = 0
+        G = 0
         if not done:
-            R = values[-1]
+            _, G = self.LocalModel(torch.Tensor(obs[np.newaxis, :, :, :]))
+            G = G.detach()
+
+        value_loss = 0
+        policy_loss = 0
 
         for i in reversed(range(len(rewards))):
-            R = rewards[i] + DISCOUNT_FACTOR * R
+            G = rewards[i] + DISCOUNT_FACTOR * G
+            Advantage = G - values[i]
 
-        Advantage = R - values[0]
-
-        # policy update
-        policy_loss = log_probs[0] * Advantage.detach() - 0.01 * entropies[0]
-
-        # value update
-        value_loss = 0.5 * Advantage.pow(2)
+            value_loss += 0.5 * Advantage.pow(2)
+            policy_loss -= Advantage * log_probs[i] + 0.01 * entropies[i]
 
         with self.lock:
             self.CriticOptimizer.zero_grad()
@@ -127,7 +127,7 @@ class Agent():
             (policy_loss + value_loss).backward()
 
             # 40 - max grad norm
-            torch.nn.utils.clip_grad_norm_(self.LocalModel.parameters(), 40)
+            #torch.nn.utils.clip_grad_norm_(self.LocalModel.parameters(), 40)
 
             for param, shared_param in zip(self.LocalModel.parameters(), self.GlobalModel.parameters()):
                 #if shared_param.grad is not None:
@@ -135,7 +135,7 @@ class Agent():
                 #shared_param._grad = param.grad
                 shared_param.grad = param.grad
 
-            self.CriticOptimizer.step()
             self.ActorOptimizer.step()
+            self.CriticOptimizer.step()
 
         return value_loss, policy_loss

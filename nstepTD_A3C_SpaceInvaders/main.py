@@ -20,12 +20,12 @@ if __name__ == '__main__':
     GlobalModel = ActorCriticModel()
     GlobalModel.share_memory()
 
+    CriticOptimizer = SharedAdam(GlobalModel.getCriticParameters(), lr=0.00035)
+    ActorOptimizer = SharedAdam(GlobalModel.getActorParameters(), lr=0.0007)
     #CriticOptimizer = SharedRMSprop(GlobalModel.getCriticParameters(), lr=0.00035, alpha=0.99, eps=0.1)
     #ActorOptimizer = SharedRMSprop(GlobalModel.getActorParameters(), lr=0.0007, alpha=0.99, eps=0.1)
     #CriticOptimizer.share_memory()
     #ActorOptimizer.share_memory()
-
-
 
     lock = Lock()
 
@@ -61,9 +61,9 @@ if __name__ == '__main__':
         if exit:
             break
 
-        if episode % 250 == 0:
-            with lock:
-                torch.save(GlobalModel.state_dict(), 'trainModels_Breakout/episodes_' + str(episode) + '.pt')
+        #if episode % 250 == 0:
+            #with lock:
+                #torch.save(GlobalModel.state_dict(), 'trainModels_Breakout/episodes_' + str(episode) + '.pt')
 
         if done:
             continue
