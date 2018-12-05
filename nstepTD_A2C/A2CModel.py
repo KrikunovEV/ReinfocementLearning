@@ -5,6 +5,7 @@ class A2CModel(torch.nn.Module):
     def __init__(self):
         super(A2CModel, self).__init__()
 
+
         self.ActorCritic = torch.nn.Sequential(
             torch.nn.Linear(4, 24),
             torch.nn.ReLU(),
@@ -17,6 +18,7 @@ class A2CModel(torch.nn.Module):
         self.Critic = torch.nn.Sequential(
             torch.nn.Linear(24, 1)
         )
+
 
 
     def forward(self, input):
