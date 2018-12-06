@@ -26,6 +26,8 @@ class Agent():
         self.ActorOptimizer = ActorOptimizer
         self.GlobalModel = GlobalModel
         self.lock = lock
+        self.sender = sender
+        self.DISCOUNT_FACTOR = DISCOUNT_FACTOR
 
         for episode in range(1, MAX_EPISODES+1):
             print("cpu thread:", self.cpu+1, ", episode:", episode)
@@ -33,26 +35,17 @@ class Agent():
             with lock:
                 self.LocalModel.load_state_dict(GlobalModel.state_dict())
 
-            episode_length = 0
             episode_reward = 0
-            value_loss = 0
-            policy_loss = 0
             done = False
 
-            episode_buffer = []
-            episode_values = []
-            episode_entropies = []
+            values, entropies, log_probs, rewards = [], [], [], []
 
-            self.env.reset()
-
-            obs = None
-
+            obs = self.env.reset()
             for _ in range(randint(1, 30)):
                 obs, _, _, _ = self.env.step(1)
-
             obs = Preprocess(obs)
 
-            for action_count in range(MAX_ACTIONS):
+            for action_count in range(1, MAX_ACTIONS):
 
                 if self.cpu == 0:
                     self.env.render()
@@ -66,43 +59,34 @@ class Agent():
                 prob_np = prob.detach().numpy()[0]
                 action = np.random.choice(prob_np, 1, p=prob_np)
                 action = np.where(prob_np == action)[0][0]
-                log_prob = log_prob[0, action]
+                log_prob = log_prob[0][action]
 
-                obs_next, reward, done, info = self.env.step(action)
-                obs_next = Preprocess(obs_next)
+                obs, reward, done, info = self.env.step(action)
+                obs = Preprocess(obs)
                 np.clip(reward, -1, 1)
                 episode_reward += reward
 
-                episode_buffer.append([reward, entropy, value, log_prob])
-                obs = obs_next
-
-                episode_values.append(value.item())
-                episode_entropies.append(entropy.item())
-
-                if len(episode_buffer) == STEPS and not(done):
-                    value_loss, policy_loss = self.train(episode_buffer, done, obs, DISCOUNT_FACTOR)
-                    episode_buffer = []
+                values.append(value)
+                entropies.append(entropy)
+                log_probs.append(log_prob)
+                rewards.append(reward)
 
                 if done:
-                    episode_length = action_count
+                    sender.send((self.cpu, False, 0, 0, 0, episode_reward, False))
                     break
 
-            if len(episode_buffer) != 0:
-                value_loss, policy_loss = self.train(episode_buffer, done, obs, DISCOUNT_FACTOR)
+                if action_count % STEPS == 0:
+                    self.train(values, entropies, log_probs, rewards, obs, done)
+                    values, entropies, log_probs, rewards = [], [], [], []
 
-            sender.send((episode, episode_reward, episode_length, np.mean(episode_values), np.mean(episode_entropies),
-                         value_loss, policy_loss, self.cpu, False))
+            self.train(values, entropies, log_probs, rewards, obs, done)
 
         # end of agent
         sender.send((0, 0, 0, 0, 0, 0, 0, self.cpu, True))
+        self.env.close()
 
 
-    def train(self, buffer, done, obs, DISCOUNT_FACTOR):
-
-        rewards = [row[0] for row in buffer]
-        entropies = [row[1] for row in buffer]
-        values = [row[2] for row in buffer]
-        log_probs = [row[3] for row in buffer]
+    def train(self, values, entropies, log_probs, rewards, obs, done):
 
         G = 0
         if not done:
@@ -113,7 +97,7 @@ class Agent():
         policy_loss = 0
 
         for i in reversed(range(len(rewards))):
-            G = rewards[i] + DISCOUNT_FACTOR * G
+            G = rewards[i] + self.DISCOUNT_FACTOR * G
             Advantage = G - values[i]
 
             value_loss += 0.5 * Advantage.pow(2)
@@ -138,4 +122,5 @@ class Agent():
             self.ActorOptimizer.step()
             self.CriticOptimizer.step()
 
-        return value_loss, policy_loss
+        self.sender.send((self.cpu, True, value_loss.item(), policy_loss.item(),
+                          np.mean([entropy.detach().numpy() for entropy in entropies]), 0, False))

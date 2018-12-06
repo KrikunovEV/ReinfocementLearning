@@ -5,17 +5,22 @@ from Agent import Agent
 from torch.multiprocessing import Process, Pipe, Lock
 from visdom import Visdom
 from SharedOptim import SharedAdam
+import numpy as np
 from SharedRMSProp import SharedRMSprop
 
 if __name__ == '__main__':
     os.environ["OMP_NUM_THREADS"] = "1"
 
     vis = Visdom()
+    reward_layout = dict(title="Episode rewards", xaxis={'title': 'episode'}, yaxis={'title': 'reward'})
+    policy_layout = dict(title="Policy loss", xaxis={'title': 'n-step iter'}, yaxis={'title': 'loss'})
+    value_layout = dict(title="Value loss", xaxis={'title': 'n-step iter'}, yaxis={'title': 'loss'})
+    entropy_layout = dict(title="Entropies", xaxis={'title': 'n-step iter'}, yaxis={'title': 'entropy'})
 
-    MAX_EPISODES = 2500
-    MAX_ACTIONS = 2000
+    MAX_EPISODES = 1500
+    MAX_ACTIONS = 3000
     DISCOUNT_FACTOR = 0.99
-    STEPS = 20
+    STEPS = 30
 
     GlobalModel = ActorCriticModel()
     GlobalModel.share_memory()
@@ -43,46 +48,90 @@ if __name__ == '__main__':
         thread.start()
         agent_threads.append(thread)
 
-    dones = [False, False, False, False]
-    once = True
+    dones = [False for _ in range(num_cpu)]
+
+    NSTEPITER = []
+    VALUELOSS = []
+    VALUELOSS_MEAN = []
+    valueloss_sample = []
+    POLICYLOSS = []
+    POLICYLOSS_MEAN = []
+    policyloss_sample = []
+    ENTROPY = []
+    ENTROPY_MEAN = []
+    entropy_sample = []
+
+    EPISODES = []
+    REWARDS = []
+    REWARDS_MEAN = []
+
     episode = 0
     while True:
-        (epi, episode_reward, episode_length, episode_mean_value, episode_mean_entropy,
-         value_loss, policy_loss, cpu, done) = receiver.recv()
-        episode += 1
-        dones[cpu] = done
+        (cpu, is_nstep, value_loss, policy_loss, entropy, reward, complete) = receiver.recv()
+
+        dones[cpu] = complete
 
         exit = True
         for d in dones:
             if d == False:
                 exit = False
                 break
-
         if exit:
             break
 
-        #if episode % 250 == 0:
-            #with lock:
-                #torch.save(GlobalModel.state_dict(), 'trainModels_Breakout/episodes_' + str(episode) + '.pt')
-
-        if done:
+        if complete:
             continue
 
-        vis.line([episode_reward], [episode], update='append', win='reward')
-        vis.line([episode_length], [episode], update='append', win='length')
-        vis.line([episode_mean_value], [episode], update='append', win='mean_value')
-        vis.line([episode_mean_entropy], [episode], update='append', win='mean_entropy')
-        vis.line([value_loss], [episode], update='append', win='value_loss')
-        vis.line([policy_loss], [episode], update='append', win='policy_loss')
+        if is_nstep:
 
-        if once:
-            once = False
-            vis.update_window_opts('reward', opts={'title': 'Episode rewards', 'xlabel': 'episode', 'ylabel': 'reward'})
-            vis.update_window_opts('length', opts={'title': 'Number of actions', 'xlabel': 'episode', 'ylabel': 'actions'})
-            vis.update_window_opts('mean_value', opts={'title': 'Mean value', 'xlabel': 'episode', 'ylabel': 'V'})
-            vis.update_window_opts('mean_entropy', opts={'title': 'Mean entropy', 'xlabel': 'episode', 'ylabel': 'entropy'})
-            vis.update_window_opts('value_loss', opts={'title': 'Value(critic) loss', 'xlabel': 'episode', 'ylabel': 'loss'})
-            vis.update_window_opts('policy_loss', opts={'title': 'Policy(actor) loss', 'xlabel': 'episode', 'ylabel': 'loss'})
+            valueloss_sample.append(value_loss)
+            policyloss_sample.append(policy_loss)
+            entropy_sample.append(entropy)
+
+            if len(valueloss_sample) == 5:
+                NSTEPITER.append(len(NSTEPITER) + 1)
+                VALUELOSS.append(np.mean(valueloss_sample))
+                POLICYLOSS.append(np.mean(policyloss_sample))
+                ENTROPY.append(np.mean(entropy_sample))
+                valueloss_sample = []
+                policyloss_sample = []
+                entropy_sample = []
+
+                if len(NSTEPITER) % 10 == 0:
+                    VALUELOSS_MEAN.append(np.mean(VALUELOSS[len(VALUELOSS) - 10:]))
+                    POLICYLOSS_MEAN.append(np.mean(VALUELOSS[len(POLICYLOSS) - 10:]))
+                    ENTROPY_MEAN.append(np.mean(VALUELOSS[len(ENTROPY) - 10:]))
+
+                trace_value = dict(x=NSTEPITER, y=VALUELOSS, type='custom', mode="lines", name='loss')
+                trace_policy = dict(x=NSTEPITER, y=POLICYLOSS, type='custom', mode="lines", name='loss')
+                trace_entropy = dict(x=NSTEPITER, y=ENTROPY, type='custom', mode="lines", name='entropy')
+                trace_value_mean = dict(x=NSTEPITER[::10], y=VALUELOSS_MEAN,
+                                    line={'color': 'red', 'width': 3}, type='custom', mode="lines", name='mean loss')
+                trace_policy_mean = dict(x=NSTEPITER[::10], y=POLICYLOSS_MEAN,
+                                     line={'color': 'red', 'width': 3}, type='custom', mode="lines", name='mean loss')
+                trace_entropy_mean = dict(x=NSTEPITER[::10], y=ENTROPY_MEAN,
+                                    line={'color': 'red', 'width': 3}, type='custom', mode="lines", name='mean entropy')
+
+                vis._send({'data': [trace_value, trace_value_mean], 'layout': value_layout, 'win': 'valuewin'})
+                vis._send({'data': [trace_policy, trace_policy_mean], 'layout': policy_layout, 'win': 'policywin'})
+                vis._send({'data': [trace_entropy, trace_entropy_mean], 'layout': entropy_layout, 'win': 'entropywin'})
+
+        else:
+            EPISODES.append(len(EPISODES) + 1)
+            REWARDS.append(reward)
+
+            if len(EPISODES) % 10 == 0:
+                REWARDS_MEAN.append(np.mean(REWARDS[len(REWARDS) - 10:]))
+
+            trace_reward = dict(x=EPISODES, y=REWARDS, type='custom', mode="lines", name='reward')
+            trace_reward_mean = dict(x=EPISODES[::10], y=REWARDS_MEAN,
+                                line={'color': 'red', 'width': 4}, type='custom', mode="lines", name='mean reward')
+
+            vis._send({'data': [trace_reward, trace_reward_mean], 'layout': reward_layout, 'win': 'rewardwin'})
+
+    #if len(EPISODES) % 250 == 0 and len(EPISODES) != 0:
+        #with lock:
+            #torch.save(GlobalModel.state_dict(), 'trainModels_Breakout/episodes_' + str(episode) + '.pt')
 
     for thread in agent_threads:
         thread.join()

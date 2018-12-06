@@ -63,8 +63,6 @@ def Train(values, log_probs, entropies, rewards, obs, done):
     Loss.backward()
     #torch.nn.utils.clip_grad_norm_(model.parameters(), 40)
 
-    #torch.nn.utils.clip_grad_norm_(model.parameters(), 40)
-
     ActorOptimizer.step()
     CriticOptimizer.step()
 
