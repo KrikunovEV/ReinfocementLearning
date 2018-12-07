@@ -101,7 +101,7 @@ class Agent():
             Advantage = G - values[i]
 
             value_loss += 0.5 * Advantage.pow(2)
-            policy_loss -= Advantage * log_probs[i] + 0.01 * entropies[i]
+            policy_loss -= Advantage.detach() * log_probs[i] + 0.01 * entropies[i]
 
         with self.lock:
             self.CriticOptimizer.zero_grad()
@@ -111,13 +111,12 @@ class Agent():
             (policy_loss + value_loss).backward()
 
             # 40 - max grad norm
-            #torch.nn.utils.clip_grad_norm_(self.LocalModel.parameters(), 40)
+            torch.nn.utils.clip_grad_norm_(self.LocalModel.parameters(), 40)
 
             for param, shared_param in zip(self.LocalModel.parameters(), self.GlobalModel.parameters()):
                 #if shared_param.grad is not None:
-                #    break
-                #shared_param._grad = param.grad
-                shared_param.grad = param.grad
+                    #break
+                shared_param._grad = param.grad
 
             self.ActorOptimizer.step()
             self.CriticOptimizer.step()

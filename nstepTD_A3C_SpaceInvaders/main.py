@@ -86,7 +86,7 @@ if __name__ == '__main__':
 
             valueloss_sample.append(value_loss)
             policyloss_sample.append(policy_loss)
-            entropy_sample.append(entropy)
+            entropy_sample.append(float(entropy))
 
             if len(valueloss_sample) == 5:
                 NSTEPITER.append(len(NSTEPITER) + 1)
@@ -99,12 +99,13 @@ if __name__ == '__main__':
 
                 if len(NSTEPITER) % 10 == 0:
                     VALUELOSS_MEAN.append(np.mean(VALUELOSS[len(VALUELOSS) - 10:]))
-                    POLICYLOSS_MEAN.append(np.mean(VALUELOSS[len(POLICYLOSS) - 10:]))
-                    ENTROPY_MEAN.append(np.mean(VALUELOSS[len(ENTROPY) - 10:]))
+                    POLICYLOSS_MEAN.append(np.mean(POLICYLOSS[len(POLICYLOSS) - 10:]))
+                    ENTROPY_MEAN.append(np.mean(ENTROPY[len(ENTROPY) - 10:]))
 
                 trace_value = dict(x=NSTEPITER, y=VALUELOSS, type='custom', mode="lines", name='loss')
                 trace_policy = dict(x=NSTEPITER, y=POLICYLOSS, type='custom', mode="lines", name='loss')
                 trace_entropy = dict(x=NSTEPITER, y=ENTROPY, type='custom', mode="lines", name='entropy')
+
                 trace_value_mean = dict(x=NSTEPITER[::10], y=VALUELOSS_MEAN,
                                     line={'color': 'red', 'width': 3}, type='custom', mode="lines", name='mean loss')
                 trace_policy_mean = dict(x=NSTEPITER[::10], y=POLICYLOSS_MEAN,

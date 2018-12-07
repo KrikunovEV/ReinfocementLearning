@@ -16,17 +16,15 @@ class ActorCriticModel(torch.nn.Module):
             torch.nn.ReLU(),
             torch.nn.Conv2d(32, 32, 4, stride=2),
             torch.nn.ReLU(),
-            torch.nn.Conv2d(32, 64, 4, stride=1),
-            torch.nn.ReLU(),
-            torch.nn.Conv2d(64, 64, 3, stride=1),
+            torch.nn.Conv2d(32, 32, 3, stride=1),
             torch.nn.ReLU(),
             Flatten(),
-            torch.nn.Linear(3 * 4 * 64, 512),
+            torch.nn.Linear(7 * 6 * 32, 512),
             torch.nn.ReLU()
         )
 
-        self.Policy = torch.nn.Linear(512, 6)
-        self.Value = torch.nn.Linear(512, 1)
+        self.Policy = torch.nn.Linear(512, 6, bias=False)
+        self.Value = torch.nn.Linear(512, 1, bias=False)
 
 
     def forward(self, input):
