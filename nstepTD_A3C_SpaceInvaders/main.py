@@ -20,13 +20,13 @@ if __name__ == '__main__':
     MAX_EPISODES = 1500
     MAX_ACTIONS = 3000
     DISCOUNT_FACTOR = 0.99
-    STEPS = 30
+    STEPS = 50
 
     GlobalModel = ActorCriticModel()
     GlobalModel.share_memory()
 
-    CriticOptimizer = SharedAdam(GlobalModel.getCriticParameters(), lr=0.00035)
-    ActorOptimizer = SharedAdam(GlobalModel.getActorParameters(), lr=0.0007)
+    CriticOptimizer = SharedAdam(GlobalModel.getCriticParameters(), lr=0.0007)
+    ActorOptimizer = SharedAdam(GlobalModel.getActorParameters(), lr=0.00035)
     #CriticOptimizer = SharedRMSprop(GlobalModel.getCriticParameters(), lr=0.00035, alpha=0.99, eps=0.1)
     #ActorOptimizer = SharedRMSprop(GlobalModel.getActorParameters(), lr=0.0007, alpha=0.99, eps=0.1)
     #CriticOptimizer.share_memory()

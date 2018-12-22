@@ -45,12 +45,15 @@ class Agent():
                 obs, _, _, _ = self.env.step(1)
             obs = Preprocess(obs)
 
+            cx = torch.zeros(1, 512)
+            hx = torch.zeros(1, 512)
+
             for action_count in range(1, MAX_ACTIONS):
 
                 if self.cpu == 0:
                     self.env.render()
 
-                logit, value = self.LocalModel(torch.Tensor(obs[np.newaxis, :, :, :]))
+                logit, value, (hx, cx) = self.LocalModel(torch.Tensor(obs[np.newaxis, :, :, :]), (hx, cx))
 
                 prob = torch.nn.functional.softmax(logit, dim=-1)
                 log_prob = torch.nn.functional.log_softmax(logit, dim=-1)
@@ -61,36 +64,47 @@ class Agent():
                 action = np.where(prob_np == action)[0][0]
                 log_prob = log_prob[0][action]
 
-                obs, reward, done, info = self.env.step(action)
-                obs = Preprocess(obs)
-                np.clip(reward, -1, 1)
-                episode_reward += reward
+                prev_obs = None
+                local_reward = 0
+                for frame in range(4):
+                    prev_obs = obs
+                    obs, reward, done, info = self.env.step(action)
+                    obs = Preprocess(obs)
+                    np.clip(reward, -1, 1)
+                    local_reward += reward
+                    if done:
+                        break
+
+                episode_reward += local_reward
+                obs = np.maximum(obs, prev_obs)
 
                 values.append(value)
                 entropies.append(entropy)
                 log_probs.append(log_prob)
-                rewards.append(reward)
+                rewards.append(local_reward)
 
                 if done:
                     sender.send((self.cpu, False, 0, 0, 0, episode_reward, False))
                     break
 
                 if action_count % STEPS == 0:
-                    self.train(values, entropies, log_probs, rewards, obs, done)
+                    self.train(values, entropies, log_probs, rewards, obs, done, hx, cx)
                     values, entropies, log_probs, rewards = [], [], [], []
+                    cx = cx.detach()
+                    hx = hx.detach()
 
-            self.train(values, entropies, log_probs, rewards, obs, done)
+            self.train(values, entropies, log_probs, rewards, obs, done, hx, cx)
 
         # end of agent
         sender.send((0, 0, 0, 0, 0, 0, 0, self.cpu, True))
         self.env.close()
 
 
-    def train(self, values, entropies, log_probs, rewards, obs, done):
+    def train(self, values, entropies, log_probs, rewards, obs, done, hx, cx):
 
         G = 0
         if not done:
-            _, G = self.LocalModel(torch.Tensor(obs[np.newaxis, :, :, :]))
+            _, G, _ = self.LocalModel(torch.Tensor(obs[np.newaxis, :, :, :]), (hx, cx))
             G = G.detach()
 
         value_loss = 0
