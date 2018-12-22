@@ -20,8 +20,9 @@ class Agent():
 
 
     def letsgo(self, GlobalModel, CriticOptimizer, ActorOptimizer, lock, sender,
-               MAX_EPISODES, MAX_ACTIONS, DISCOUNT_FACTOR, STEPS):
+               MAX_EPISODES, MAX_ACTIONS, DISCOUNT_FACTOR, STEPS, Optimizer):
 
+        self.Optimizer = Optimizer
         self.CriticOptimizer = CriticOptimizer
         self.ActorOptimizer = ActorOptimizer
         self.GlobalModel = GlobalModel
@@ -118,8 +119,9 @@ class Agent():
             policy_loss -= Advantage.detach() * log_probs[i] + 0.01 * entropies[i]
 
         with self.lock:
-            self.CriticOptimizer.zero_grad()
-            self.ActorOptimizer.zero_grad()
+            #self.CriticOptimizer.zero_grad()
+            #self.ActorOptimizer.zero_grad()
+            self.Optimizer.zero_grad()
 
             # 0.5 - value loss coef
             (policy_loss + value_loss).backward()
@@ -132,8 +134,9 @@ class Agent():
                     #break
                 shared_param._grad = param.grad
 
-            self.ActorOptimizer.step()
-            self.CriticOptimizer.step()
+            #self.ActorOptimizer.step()
+            #self.CriticOptimizer.step()
+            self.Optimizer.step()
 
         self.sender.send((self.cpu, True, value_loss.item(), policy_loss.item(),
                           np.mean([entropy.detach().numpy() for entropy in entropies]), 0, False))

@@ -20,13 +20,15 @@ if __name__ == '__main__':
     MAX_EPISODES = 1500
     MAX_ACTIONS = 3000
     DISCOUNT_FACTOR = 0.99
-    STEPS = 50
+    STEPS = 30
 
     GlobalModel = ActorCriticModel()
     GlobalModel.share_memory()
 
+    Optimizer = SharedAdam(GlobalModel.parameters(), lr=0.0001)
     CriticOptimizer = SharedAdam(GlobalModel.getCriticParameters(), lr=0.0007)
     ActorOptimizer = SharedAdam(GlobalModel.getActorParameters(), lr=0.00035)
+
     #CriticOptimizer = SharedRMSprop(GlobalModel.getCriticParameters(), lr=0.00035, alpha=0.99, eps=0.1)
     #ActorOptimizer = SharedRMSprop(GlobalModel.getActorParameters(), lr=0.0007, alpha=0.99, eps=0.1)
     #CriticOptimizer.share_memory()
@@ -44,7 +46,7 @@ if __name__ == '__main__':
     agent_threads = []
     for agent in agents:
         thread = Process(target=agent.letsgo, args=(GlobalModel, CriticOptimizer, ActorOptimizer, lock, sender,
-                                                      MAX_EPISODES, MAX_ACTIONS, DISCOUNT_FACTOR, STEPS,))
+                                                      MAX_EPISODES, MAX_ACTIONS, DISCOUNT_FACTOR, STEPS, Optimizer,))
         thread.start()
         agent_threads.append(thread)
 
