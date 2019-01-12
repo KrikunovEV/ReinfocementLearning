@@ -18,8 +18,9 @@ Here You can see the progress of my **Graduate work**.
 1. VIN [Value Iteration Network](http://papers.nips.cc/paper/6046-value-iteration-networks.pdf);
 2. DQN [Deep Q Network](https://www.cs.toronto.edu/~vmnih/docs/dqn.pdf);
 3. [Prioritized experience replay](https://arxiv.org/pdf/1511.05952.pdf);
-4. Generalized Advantage Estimation for policy gradient [GAE](https://arxiv.org/pdf/1506.02438.pdf)
-5. All environments from [Gym](https://gym.openai.com/envs/#classic_control).
+4. Generalized Advantage Estimation for policy gradient [GAE](https://arxiv.org/pdf/1506.02438.pdf);
+5. All environments from [Gym](https://gym.openai.com/envs/#classic_control);
+6. [SWA](https://izmailovpavel.github.io/files/swa_rl/paper.pdf) - the stochastic weight averaging.
 
 ### How to get atari games and PySC2
 ```python
