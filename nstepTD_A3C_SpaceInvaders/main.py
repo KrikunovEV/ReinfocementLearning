@@ -1,12 +1,10 @@
 import os
-import torch
-from ActorCriticModel import ActorCriticModel
+from ActorCriticModel import *
 from Agent import Agent
 from torch.multiprocessing import Process, Pipe, Lock
 from visdom import Visdom
-from SharedOptim import SharedAdam
+from SharedOptim import SharedRMSprop
 import numpy as np
-from SharedRMSProp import SharedRMSprop
 
 if __name__ == '__main__':
     os.environ["OMP_NUM_THREADS"] = "1"
@@ -17,22 +15,21 @@ if __name__ == '__main__':
     value_layout = dict(title="Value loss", xaxis={'title': 'n-step iter'}, yaxis={'title': 'loss'})
     entropy_layout = dict(title="Entropies", xaxis={'title': 'n-step iter'}, yaxis={'title': 'entropy'})
 
-    MAX_EPISODES = 1500
-    MAX_ACTIONS = 3000
+    MAX_EPISODES = 20000
+    MAX_ACTIONS = 50000
     DISCOUNT_FACTOR = 0.99
-    STEPS = 30
+    STEPS = 20
 
-    GlobalModel = ActorCriticModel()
+    GlobalModel = ActorCriticModel_Breakout()
     GlobalModel.share_memory()
 
-    Optimizer = SharedAdam(GlobalModel.parameters(), lr=0.0001)
-    CriticOptimizer = SharedAdam(GlobalModel.getCriticParameters(), lr=0.0007)
-    ActorOptimizer = SharedAdam(GlobalModel.getActorParameters(), lr=0.00035)
-
-    #CriticOptimizer = SharedRMSprop(GlobalModel.getCriticParameters(), lr=0.00035, alpha=0.99, eps=0.1)
-    #ActorOptimizer = SharedRMSprop(GlobalModel.getActorParameters(), lr=0.0007, alpha=0.99, eps=0.1)
-    #CriticOptimizer.share_memory()
-    #ActorOptimizer.share_memory()
+    Optimizer = None
+    #Optimizer = SharedRMSprop(GlobalModel.parameters(), lr=0.0007, eps=0.1, alpha=0.99, momentum=0.0)
+    CriticOptimizer = SharedRMSprop(GlobalModel.getCriticParameters(), lr=0.00035, alpha=0.99, eps=0.1, momentum=0.0)
+    ActorOptimizer = SharedRMSprop(GlobalModel.getActorParameters(), lr=0.0007, alpha=0.99, eps=0.1, momentum=0.0)
+    #Optimizer.share_memory()
+    CriticOptimizer.share_memory()
+    ActorOptimizer.share_memory()
 
     lock = Lock()
 
@@ -66,8 +63,8 @@ if __name__ == '__main__':
     EPISODES = []
     REWARDS = []
     REWARDS_MEAN = []
+    reward_sample = []
 
-    episode = 0
     while True:
         (cpu, is_nstep, value_loss, policy_loss, entropy, reward, complete) = receiver.recv()
 
@@ -90,7 +87,7 @@ if __name__ == '__main__':
             policyloss_sample.append(policy_loss)
             entropy_sample.append(float(entropy))
 
-            if len(valueloss_sample) == 5:
+            if len(valueloss_sample) == 100:
                 NSTEPITER.append(len(NSTEPITER) + 1)
                 VALUELOSS.append(np.mean(valueloss_sample))
                 POLICYLOSS.append(np.mean(policyloss_sample))
@@ -120,21 +117,25 @@ if __name__ == '__main__':
                 vis._send({'data': [trace_entropy, trace_entropy_mean], 'layout': entropy_layout, 'win': 'entropywin'})
 
         else:
-            EPISODES.append(len(EPISODES) + 1)
-            REWARDS.append(reward)
 
-            if len(EPISODES) % 10 == 0:
-                REWARDS_MEAN.append(np.mean(REWARDS[len(REWARDS) - 10:]))
+            reward_sample.append(reward)
+            if(len(reward_sample) == 10):
+                EPISODES.append(len(EPISODES) + 1)
+                REWARDS.append(np.mean(reward_sample))
+                reward_sample = []
 
-            trace_reward = dict(x=EPISODES, y=REWARDS, type='custom', mode="lines", name='reward')
-            trace_reward_mean = dict(x=EPISODES[::10], y=REWARDS_MEAN,
-                                line={'color': 'red', 'width': 4}, type='custom', mode="lines", name='mean reward')
+                if len(EPISODES) % 10 == 0:
+                    REWARDS_MEAN.append(np.mean(REWARDS[len(REWARDS) - 10:]))
 
-            vis._send({'data': [trace_reward, trace_reward_mean], 'layout': reward_layout, 'win': 'rewardwin'})
+                trace_reward = dict(x=EPISODES, y=REWARDS, type='custom', mode="lines", name='reward')
+                trace_reward_mean = dict(x=EPISODES[::10], y=REWARDS_MEAN,
+                                    line={'color': 'red', 'width': 4}, type='custom', mode="lines", name='mean reward')
 
-    #if len(EPISODES) % 250 == 0 and len(EPISODES) != 0:
-        #with lock:
-            #torch.save(GlobalModel.state_dict(), 'trainModels_Breakout/episodes_' + str(episode) + '.pt')
+                vis._send({'data': [trace_reward, trace_reward_mean], 'layout': reward_layout, 'win': 'rewardwin'})
+
+                if len(EPISODES) % 50 == 0:
+                    print("Saved")
+                    torch.save(GlobalModel.state_dict(), 'trainModels_Breakout/episodes_' + str(len(EPISODES)) + '.pt')
 
     for thread in agent_threads:
         thread.join()

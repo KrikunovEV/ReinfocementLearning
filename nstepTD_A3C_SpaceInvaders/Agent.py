@@ -1,13 +1,23 @@
-from ActorCriticModel import ActorCriticModel
+from ActorCriticModel import *
 import gym
 import torch
 import numpy as np
 from random import randint
+import matplotlib.pyplot as plt
 
-
+# Space Invaders
+'''
 def Preprocess(img):
     img = img[::2, ::2]
     img = img[10:len(img) - 7]
+    return np.mean(img, axis=2)[np.newaxis,:,:].astype(np.float32) / 255.0
+'''
+
+# Breakout
+def Preprocess(img):
+    img = img[::2, ::2]
+    img = img[16:len(img)-7]
+    img = img[:,4:img.shape[1]-4]
     return np.mean(img, axis=2)[np.newaxis,:,:].astype(np.float32) / 255.0
 
 
@@ -15,14 +25,16 @@ class Agent():
 
     def __init__(self, cpu):
         self.cpu = cpu
-        self.LocalModel = ActorCriticModel()
-        self.env = gym.make('SpaceInvaders-v0')
+        self.LocalModel = ActorCriticModel_Breakout()
+        self.env = gym.make('BreakoutDeterministic-v4')
 
 
     def letsgo(self, GlobalModel, CriticOptimizer, ActorOptimizer, lock, sender,
                MAX_EPISODES, MAX_ACTIONS, DISCOUNT_FACTOR, STEPS, Optimizer):
 
-        self.Optimizer = Optimizer
+        torch.manual_seed(self.cpu + 1)
+
+        #self.Optimizer = Optimizer
         self.CriticOptimizer = CriticOptimizer
         self.ActorOptimizer = ActorOptimizer
         self.GlobalModel = GlobalModel
@@ -33,8 +45,7 @@ class Agent():
         for episode in range(1, MAX_EPISODES+1):
             print("cpu thread:", self.cpu+1, ", episode:", episode)
 
-            with lock:
-                self.LocalModel.load_state_dict(GlobalModel.state_dict())
+            self.LocalModel.load_state_dict(GlobalModel.state_dict())
 
             episode_reward = 0
             done = False
@@ -42,17 +53,20 @@ class Agent():
             values, entropies, log_probs, rewards = [], [], [], []
 
             obs = self.env.reset()
+            # Space Invaders
+            '''
             for _ in range(randint(1, 30)):
                 obs, _, _, _ = self.env.step(1)
+            '''
             obs = Preprocess(obs)
 
-            cx = torch.zeros(1, 512)
-            hx = torch.zeros(1, 512)
+            cx = torch.zeros(1, 256)
+            hx = torch.zeros(1, 256)
 
             for action_count in range(1, MAX_ACTIONS):
 
-                if self.cpu == 0:
-                    self.env.render()
+                #if self.cpu == 0:
+                #    self.env.render()
 
                 logit, value, (hx, cx) = self.LocalModel(torch.Tensor(obs[np.newaxis, :, :, :]), (hx, cx))
 
@@ -65,6 +79,9 @@ class Agent():
                 action = np.where(prob_np == action)[0][0]
                 log_prob = log_prob[0][action]
 
+
+                # Space Invaders frame skipping
+                '''
                 prev_obs = None
                 local_reward = 0
                 for frame in range(4):
@@ -78,11 +95,20 @@ class Agent():
 
                 episode_reward += local_reward
                 obs = np.maximum(obs, prev_obs)
+                #if self.cpu == 0:
+                 #   plt.imshow(obs[0], cmap='gray')
+                  #  plt.show()
+                '''
+
+                obs, reward, done, info = self.env.step(action)
+                obs = Preprocess(obs)
+                np.clip(reward, -1, 1)
+                episode_reward += reward
 
                 values.append(value)
                 entropies.append(entropy)
                 log_probs.append(log_prob)
-                rewards.append(local_reward)
+                rewards.append(reward)
 
                 if done:
                     sender.send((self.cpu, False, 0, 0, 0, episode_reward, False))
@@ -97,7 +123,7 @@ class Agent():
             self.train(values, entropies, log_probs, rewards, obs, done, hx, cx)
 
         # end of agent
-        sender.send((0, 0, 0, 0, 0, 0, 0, self.cpu, True))
+        sender.send((self.cpu, 0, 0, 0, 0, 0, 0, True))
         self.env.close()
 
 
@@ -116,27 +142,26 @@ class Agent():
             Advantage = G - values[i]
 
             value_loss += 0.5 * Advantage.pow(2)
-            policy_loss -= Advantage.detach() * log_probs[i] + 0.01 * entropies[i]
+            policy_loss -= (Advantage.detach() * log_probs[i] + 0.01 * entropies[i])
 
-        with self.lock:
-            #self.CriticOptimizer.zero_grad()
-            #self.ActorOptimizer.zero_grad()
-            self.Optimizer.zero_grad()
 
-            # 0.5 - value loss coef
-            (policy_loss + value_loss).backward()
+        self.CriticOptimizer.zero_grad()
+        self.ActorOptimizer.zero_grad()
+        #self.Optimizer.zero_grad()
 
-            # 40 - max grad norm
-            torch.nn.utils.clip_grad_norm_(self.LocalModel.parameters(), 40)
+        # 0.5 - value loss coef
+        (policy_loss + 0.5 * value_loss).backward()
 
-            for param, shared_param in zip(self.LocalModel.parameters(), self.GlobalModel.parameters()):
-                #if shared_param.grad is not None:
-                    #break
+        # 40 - max grad norm
+        torch.nn.utils.clip_grad_norm_(self.LocalModel.parameters(), 40)
+
+        for param, shared_param in zip(self.LocalModel.parameters(), self.GlobalModel.parameters()):
+            if shared_param.grad is None:
                 shared_param._grad = param.grad
 
-            #self.ActorOptimizer.step()
-            #self.CriticOptimizer.step()
-            self.Optimizer.step()
+        self.ActorOptimizer.step()
+        self.CriticOptimizer.step()
+        #self.Optimizer.step()
 
         self.sender.send((self.cpu, True, value_loss.item(), policy_loss.item(),
                           np.mean([entropy.detach().numpy() for entropy in entropies]), 0, False))

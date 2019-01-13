@@ -2,9 +2,97 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="804b0195-7723-4b48-8486-5ffb08c560a8" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/trainModels_SpaceInvaders/episodes_100.pt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trainModels_SpaceInvaders/episodes_1000.pt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trainModels_SpaceInvaders/episodes_1100.pt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trainModels_SpaceInvaders/episodes_1200.pt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trainModels_SpaceInvaders/episodes_1300.pt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trainModels_SpaceInvaders/episodes_1400.pt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trainModels_SpaceInvaders/episodes_1500.pt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trainModels_SpaceInvaders/episodes_1600.pt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trainModels_SpaceInvaders/episodes_1700.pt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trainModels_SpaceInvaders/episodes_1800.pt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trainModels_SpaceInvaders/episodes_1900.pt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trainModels_SpaceInvaders/episodes_200.pt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trainModels_SpaceInvaders/episodes_2000.pt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trainModels_SpaceInvaders/episodes_300.pt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trainModels_SpaceInvaders/episodes_400.pt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trainModels_SpaceInvaders/episodes_500.pt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trainModels_SpaceInvaders/episodes_600.pt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trainModels_SpaceInvaders/episodes_700.pt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trainModels_SpaceInvaders/episodes_800.pt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trainModels_SpaceInvaders/episodes_900.pt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../nstepTD_A2C_CartPole/Agent.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../nstepTD_A2C_CartPole/Model.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ActorCriticModel.py" beforeDir="false" afterPath="$PROJECT_DIR$/ActorCriticModel.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ActorCriticModel_Breakout.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/Agent.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/LSTM.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/PlayModel.py" beforeDir="false" afterPath="$PROJECT_DIR$/PlayModel.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SharedOptim.py" beforeDir="false" afterPath="$PROJECT_DIR$/SharedOptim.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SharedRMSProp.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/delete.py" beforeDir="false" afterPath="$PROJECT_DIR$/EnvInfo.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_100.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_1000.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_1050.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_1100.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_1150.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_1200.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_1250.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_1300.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_1350.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_1400.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_1450.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_150.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_1500.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_1550.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_1600.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_1650.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_1700.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_1750.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_1800.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_1850.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_1900.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_1950.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_200.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_2000.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_250.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_300.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_350.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_400.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_450.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_50.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_500.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_550.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_600.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_650.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_700.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_750.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_800.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_850.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_900.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels/episodes_950.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels2/episodes_200.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels2/episodes_300.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels2/episodes_350.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels2/episodes_400.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels2/episodes_600.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels2/episodes_800.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels3/episodes_1000.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels3/episodes_250.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels3/episodes_500.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels3/episodes_750.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels_Breakout/episodes_1000.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels_Breakout/episodes_1250.pt" beforeDir="false" afterPath="$PROJECT_DIR$/trainModels_Breakout/episodes_1250.pt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels_Breakout/episodes_250.pt" beforeDir="false" afterPath="$PROJECT_DIR$/trainModels_Breakout/episodes_250.pt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels_Breakout/episodes_500.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainModels_Breakout/episodes_750.pt" beforeDir="false" afterPath="$PROJECT_DIR$/trainModels_Breakout/episodes_750.pt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainmodels4/episodes_1000.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainmodels4/episodes_250.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainmodels4/episodes_500.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainmodels4/episodes_750.pt" beforeDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -118,44 +206,54 @@
     <session id="1074175618">
       <usages-collector id="statistics.lifecycle.project">
         <counts>
-          <entry key="project.closed" value="4" />
+          <entry key="project.closed" value="12" />
+          <entry key="project.open.time.10" value="1" />
           <entry key="project.open.time.131" value="1" />
           <entry key="project.open.time.25" value="1" />
           <entry key="project.open.time.29" value="1" />
+          <entry key="project.open.time.30" value="1" />
+          <entry key="project.open.time.31" value="1" />
+          <entry key="project.open.time.35" value="1" />
+          <entry key="project.open.time.352" value="1" />
           <entry key="project.open.time.36" value="1" />
-          <entry key="project.open.time.38" value="1" />
-          <entry key="project.opened" value="5" />
+          <entry key="project.open.time.38" value="3" />
+          <entry key="project.open.time.51" value="1" />
+          <entry key="project.open.time.67" value="1" />
+          <entry key="project.open.time.9" value="1" />
+          <entry key="project.opened" value="15" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
-          <entry key="py" value="867" />
+          <entry key="dummy" value="7" />
+          <entry key="py" value="2000" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
-          <entry key="Python" value="867" />
+          <entry key="PLAIN_TEXT" value="7" />
+          <entry key="Python" value="2000" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.open">
         <counts>
-          <entry key="py" value="5" />
+          <entry key="py" value="13" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.open">
         <counts>
-          <entry key="Python" value="5" />
+          <entry key="Python" value="13" />
         </counts>
       </usages-collector>
     </session>
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/main.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="221">
-              <caret line="34" column="34" lean-forward="true" selection-start-line="34" selection-start-column="34" selection-end-line="34" selection-end-column="34" />
+            <state relative-caret-position="255">
+              <caret line="30" column="34" selection-start-line="30" selection-start-column="34" selection-end-line="30" selection-end-column="34" />
               <folding>
                 <element signature="e#0#9#0" expanded="true" />
               </folding>
@@ -163,13 +261,13 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/Agent.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2006">
-              <caret line="118" column="58" selection-start-line="118" selection-start-column="58" selection-end-line="118" selection-end-column="58" />
+            <state relative-caret-position="2363">
+              <caret line="144" column="84" selection-start-line="144" selection-start-column="84" selection-end-line="144" selection-end-column="84" />
               <folding>
-                <element signature="e#0#45#0" expanded="true" />
+                <element signature="e#0#30#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -178,8 +276,23 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/ActorCriticModel.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="306">
-              <caret line="24" lean-forward="true" selection-start-line="24" selection-end-line="24" />
+            <state relative-caret-position="-145">
+              <caret line="105" selection-start-line="105" selection-end-line="105" />
+              <folding>
+                <element signature="e#0#12#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/PlayModel.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="263">
+              <caret line="27" selection-start-line="27" selection-end-line="27" />
+              <folding>
+                <element signature="e#0#28#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -200,23 +313,24 @@
     <option name="CHANGED_PATHS">
       <list>
         <option value="$PROJECT_DIR$/Model.py" />
-        <option value="$PROJECT_DIR$/PlayModel.py" />
-        <option value="$PROJECT_DIR$/delete.py" />
         <option value="$PROJECT_DIR$/SharedRMSProp.py" />
-        <option value="$PROJECT_DIR$/SharedOptim.py" />
         <option value="$PROJECT_DIR$/../nstepTD_A2C_CartPole/CartPole.py" />
         <option value="$PROJECT_DIR$/test.py" />
         <option value="$PROJECT_DIR$/LSTM.py" />
-        <option value="$PROJECT_DIR$/ActorCriticModel.py" />
-        <option value="$PROJECT_DIR$/Agent.py" />
+        <option value="$PROJECT_DIR$/SharedOptim.py" />
+        <option value="$PROJECT_DIR$/delete.py" />
+        <option value="$PROJECT_DIR$/EnvInfo.py" />
         <option value="$PROJECT_DIR$/main.py" />
+        <option value="$PROJECT_DIR$/Agent.py" />
+        <option value="$PROJECT_DIR$/PlayModel.py" />
+        <option value="$PROJECT_DIR$/ActorCriticModel.py" />
       </list>
     </option>
   </component>
   <component name="ProjectFrameBounds" extendedState="6">
-    <option name="x" value="30" />
-    <option name="width" value="1346" />
-    <option name="height" value="688" />
+    <option name="x" value="953" />
+    <option name="width" value="974" />
+    <option name="height" value="1047" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectView">
@@ -224,6 +338,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -231,15 +346,19 @@
               <item name="nstepTD_A3C_SpaceInvaders" type="b2602c69:ProjectViewProjectNode" />
               <item name="nstepTD_A3C_SpaceInvaders" type="462c0819:PsiDirectoryNode" />
             </path>
+            <path>
+              <item name="nstepTD_A3C_SpaceInvaders" type="b2602c69:ProjectViewProjectNode" />
+              <item name="nstepTD_A3C_SpaceInvaders" type="462c0819:PsiDirectoryNode" />
+              <item name="trainModels_Breakout" type="462c0819:PsiDirectoryNode" />
+            </path>
           </expand>
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/../nstepTD_A2C_CartPole" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../nstepTD_A3C_CartPole" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="RunDashboard">
@@ -276,6 +395,27 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="EnvInfo" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="A3C" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/EnvInfo.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="PlayModel" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="A3C" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -297,27 +437,6 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="SharedOptim" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <module name="A3C" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/SharedOptim.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
     <configuration name="delete" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="A3C" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -330,7 +449,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/delete.py" />
+      <option name="SCRIPT_NAME" value="C:\Users\Evgeniy\Desktop\study\ReinfocementLearning\nstepTD_A3C_SpaceInvaders\EnvInfo.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -385,17 +504,17 @@
       <item itemvalue="Python.main" />
       <item itemvalue="Python.delete" />
       <item itemvalue="Python.PlayModel" />
-      <item itemvalue="Python.SharedOptim" />
       <item itemvalue="Python.ActorCriticModel" />
       <item itemvalue="Python.test" />
+      <item itemvalue="Python.EnvInfo" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.test" />
-        <item itemvalue="Python.delete" />
         <item itemvalue="Python.PlayModel" />
+        <item itemvalue="Python.EnvInfo" />
+        <item itemvalue="Python.delete" />
+        <item itemvalue="Python.test" />
         <item itemvalue="Python.ActorCriticModel" />
-        <item itemvalue="Python.SharedOptim" />
       </list>
     </recent_temporary>
   </component>
@@ -422,14 +541,14 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="-8" y="-8" width="1382" height="744" extended-state="6" />
+    <frame x="-8" y="-8" width="1616" height="876" extended-state="6" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.24851191" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.12040558" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
-      <window_info anchor="bottom" id="Find" order="1" />
-      <window_info anchor="bottom" id="Run" order="2" sideWeight="0.49776787" weight="0.30441898" />
+      <window_info anchor="bottom" id="Find" order="1" weight="0.32936078" />
+      <window_info anchor="bottom" id="Run" order="2" sideWeight="0.49776787" weight="0.30282637" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.39973083" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -538,55 +657,8 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/PlayModel.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="204">
-          <caret line="18" selection-start-line="18" selection-end-line="18" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/ActorCriticModel_Breakout.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="254">
-          <caret line="25" lean-forward="true" selection-start-line="25" selection-end-line="25" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/SharedRMSProp.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="85">
-          <caret line="14" selection-start-line="14" selection-end-line="14" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/delete.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="68">
-          <caret line="6" column="27" selection-start-line="6" selection-start-column="27" selection-end-line="6" selection-end-column="27" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/SharedOptim.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="356">
-          <caret line="40" column="61" selection-start-line="40" selection-start-column="61" selection-end-line="40" selection-end-column="61" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/test.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="340">
-          <caret line="20" column="28" selection-start-line="20" selection-start-column="28" selection-end-line="20" selection-end-column="28" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../nstepTD_A2C_CartPole/CartPole.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="833">
-          <caret line="53" column="19" lean-forward="true" selection-start-line="53" selection-start-column="19" selection-end-line="53" selection-end-column="19" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/ActorCriticModel_Breakout.py" />
+    <entry file="file://$PROJECT_DIR$/../nstepTD_A2C_CartPole/Agent.py" />
     <entry file="file://$USER_HOME$/Anaconda3/Lib/site-packages/torch/nn/modules/rnn.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="417">
@@ -594,36 +666,68 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/LSTM.py">
+    <entry file="file://$PROJECT_DIR$/LSTM.py" />
+    <entry file="file://$PROJECT_DIR$/SharedRMSProp.py" />
+    <entry file="file://$PROJECT_DIR$/../nstepTD_A3C_CartPole/CartPole.py">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SharedOptim.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="305">
-          <caret line="44" column="27" selection-start-line="44" selection-start-column="22" selection-end-line="44" selection-end-column="27" />
+        <state relative-caret-position="561">
+          <caret line="33" column="33" selection-start-line="33" selection-start-column="33" selection-end-line="33" selection-end-column="33" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/main.py">
+    <entry file="file://$PROJECT_DIR$/test.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="221">
-          <caret line="34" column="34" lean-forward="true" selection-start-line="34" selection-start-column="34" selection-end-line="34" selection-end-column="34" />
+        <state relative-caret-position="323">
+          <caret line="20" column="28" selection-start-line="20" selection-start-column="28" selection-end-line="20" selection-end-column="28" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/EnvInfo.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="34">
+          <caret line="4" selection-start-line="4" selection-end-line="8" selection-end-column="63" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Agent.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2363">
+          <caret line="144" column="84" selection-start-line="144" selection-start-column="84" selection-end-line="144" selection-end-column="84" />
           <folding>
-            <element signature="e#0#9#0" expanded="true" />
+            <element signature="e#0#30#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/PlayModel.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="263">
+          <caret line="27" selection-start-line="27" selection-end-line="27" />
+          <folding>
+            <element signature="e#0#28#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/ActorCriticModel.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="306">
-          <caret line="24" lean-forward="true" selection-start-line="24" selection-end-line="24" />
+        <state relative-caret-position="-145">
+          <caret line="105" selection-start-line="105" selection-end-line="105" />
+          <folding>
+            <element signature="e#0#12#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/Agent.py">
+    <entry file="file://$PROJECT_DIR$/main.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2006">
-          <caret line="118" column="58" selection-start-line="118" selection-start-column="58" selection-end-line="118" selection-end-column="58" />
+        <state relative-caret-position="255">
+          <caret line="30" column="34" selection-start-line="30" selection-start-column="34" selection-end-line="30" selection-end-column="34" />
           <folding>
-            <element signature="e#0#45#0" expanded="true" />
+            <element signature="e#0#9#0" expanded="true" />
           </folding>
         </state>
       </provider>
