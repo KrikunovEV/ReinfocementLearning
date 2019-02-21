@@ -73,4 +73,4 @@ for i, obs in enumerate(minimap_obs):
     plt.imshow(np.array(obs[0]), cmap='gray')
 plt.show()
 
-env.close()
+env.close()#
