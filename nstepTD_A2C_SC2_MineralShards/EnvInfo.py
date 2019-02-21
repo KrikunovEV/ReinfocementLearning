@@ -37,26 +37,40 @@ minimap_labels = [
     "height_map", "visibility_map", "creep", "camera", "player_id",
     "player_relative", "selected"]
 
-
-screens = obs.observation["feature_screen"]
-minimaps = obs.observation["feature_minimap"]
+screen_ind = [1, 5, 8, 9, 14, 15]
+minimap_ind = [1, 4, 5]
+screens_obs_all = obs.observation["feature_screen"]
+minimaps_obs_all = obs.observation["feature_minimap"]
+screens_obs = []
+minimap_obs = []
 
 fig=plt.figure(figsize=(16, 9), dpi=80)
-
-for i, screen in enumerate(screens):
+for i, screen in enumerate(screens_obs_all):
     fig.add_subplot(3, 6, i+1)
     plt.title(screen_labels[i])
     plt.imshow(np.array(screen), cmap='gray')
-
+    if i in screen_ind:
+        screens_obs.append([screen, screen_labels[i]])
 plt.show()
 
 fig=plt.figure(figsize=(16, 9), dpi=80)
-
-for i, minimap in enumerate(minimaps):
+for i, minimap in enumerate(minimaps_obs_all):
     fig.add_subplot(2, 4, i+1)
     plt.title(minimap_labels[i])
     plt.imshow(np.array(minimap), cmap='gray')
+    if i in minimap_ind:
+        minimap_obs.append([minimap, minimap_labels[i]])
+plt.show()
 
+fig=plt.figure(figsize=(16, 9), dpi=80)
+for i, obs in enumerate(screens_obs):
+    fig.add_subplot(3, 3, i+1)
+    plt.title(obs[1])
+    plt.imshow(np.array(obs[0]), cmap='gray')
+for i, obs in enumerate(minimap_obs):
+    fig.add_subplot(3, 3, i+7)
+    plt.title(obs[1])
+    plt.imshow(np.array(obs[0]), cmap='gray')
 plt.show()
 
 env.close()

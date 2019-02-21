@@ -1,0 +1,7 @@
+Good:
+STEPS 20
+DISCOUNTING 0.99
+RMSprop Actor 0.0007
+RMSprop Critic 0.00035
+ELU + 3x3 convs
+lr annealing
