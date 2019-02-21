@@ -6,13 +6,6 @@ from pysc2.lib import actions
 import matplotlib.pyplot as plt
 import numpy as np
 
-_PLAYER_RELATIVE = features.SCREEN_FEATURES.player_relative.index
-_PLAYER_SELF = features.PlayerRelative.SELF
-_PLAYER_NEUTRAL = features.PlayerRelative.NEUTRAL
-_PLAYER_ENEMY = features.PlayerRelative.ENEMY
-
-FUNCTIONS = actions.FUNCTIONS
-
 env = sc2_env.SC2Env(
     map_name="CollectMineralShards",
     step_mul=8,
@@ -23,8 +16,8 @@ env = sc2_env.SC2Env(
         minimap=64))
 )
 
-obs = env.reset()[0] # num agent
-
+obss = env.reset()[0] # num agent
+print(obss)
 # 17
 screen_labels = [
     "height_map", "visibility_map", "creep", "power", "player_id",
@@ -39,8 +32,8 @@ minimap_labels = [
 
 screen_ind = [1, 5, 8, 9, 14, 15]
 minimap_ind = [1, 4, 5]
-screens_obs_all = obs.observation["feature_screen"]
-minimaps_obs_all = obs.observation["feature_minimap"]
+screens_obs_all = obss.observation["feature_screen"]
+minimaps_obs_all = obss.observation["feature_minimap"]
 screens_obs = []
 minimap_obs = []
 
@@ -51,7 +44,7 @@ for i, screen in enumerate(screens_obs_all):
     plt.imshow(np.array(screen), cmap='gray')
     if i in screen_ind:
         screens_obs.append([screen, screen_labels[i]])
-plt.show()
+#plt.show()
 
 fig=plt.figure(figsize=(16, 9), dpi=80)
 for i, minimap in enumerate(minimaps_obs_all):
@@ -60,7 +53,7 @@ for i, minimap in enumerate(minimaps_obs_all):
     plt.imshow(np.array(minimap), cmap='gray')
     if i in minimap_ind:
         minimap_obs.append([minimap, minimap_labels[i]])
-plt.show()
+#plt.show()
 
 fig=plt.figure(figsize=(16, 9), dpi=80)
 for i, obs in enumerate(screens_obs):
@@ -71,6 +64,25 @@ for i, obs in enumerate(minimap_obs):
     fig.add_subplot(3, 3, i+7)
     plt.title(obs[1])
     plt.imshow(np.array(obs[0]), cmap='gray')
-plt.show()
+#plt.show()
 
-env.close()#
+_SELECT_ARMY = actions.FUNCTIONS.select_army.id
+_NO_OP = actions.FUNCTIONS.no_op.id
+_MOVE = actions.FUNCTIONS.Move_screen.id
+
+
+Actions = obss.observation["available_actions"]
+if _MOVE not in Actions:
+    print("select")
+    new_obs = env.step(actions=[sc2_actions.FunctionCall(_SELECT_ARMY, [[0]])])
+else:
+    new_obs = env.step(actions=[sc2_actions.FunctionCall(_NO_OP, [[0]])])
+
+new_action = [sc2_actions.FunctionCall(_MOVE, [[0], [25, 25]])]
+
+print('reward: ' + str(obss.reward))
+
+for i in range(0,10000):
+    continue
+
+env.close()
