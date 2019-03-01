@@ -17,7 +17,7 @@ env = sc2_env.SC2Env(
 )
 
 obss = env.reset()[0] # num agent
-print(obss)
+#print(obss)
 # 17
 screen_labels = [
     "height_map", "visibility_map", "creep", "power", "player_id",
@@ -76,13 +76,22 @@ if _MOVE not in Actions:
     print("select")
     new_obs = env.step(actions=[sc2_actions.FunctionCall(_SELECT_ARMY, [[0]])])
 else:
-    new_obs = env.step(actions=[sc2_actions.FunctionCall(_NO_OP, [[0]])])
+    new_obs = env.step(actions=[sc2_actions.FunctionCall(_NO_OP, [[0]]) ])
 
-new_action = [sc2_actions.FunctionCall(_MOVE, [[0], [25, 25]])]
+env.send_chat_messages("Hey")
+for i in range(0,100000000):
+    new_obs = env.step(actions=[sc2_actions.FunctionCall(_MOVE, [[0], [25, 25]])])[0]
 
-print('reward: ' + str(obss.reward))
+    #print(new_obs)
+    #break
 
-for i in range(0,10000):
-    continue
+    if new_obs.reward != 0:
+        print('reward: ' + str(new_obs.reward))
+    done = new_obs.step_type == 2 # environment.StepType.LAST
+    if done:
+        break
+
+
+
 
 env.close()

@@ -1,13 +1,11 @@
 import torch
-import numpy as np
-
 
 class Flatten(torch.nn.Module):
     def forward(self, input):
         return input.view(input.size(0), -1)
 
 
-class FullyConv_LSTM:
+class FullyConv_LSTM(torch.nn.Module):
 
     def __init__(self):
         super(FullyConv_LSTM, self).__init__()
@@ -31,7 +29,7 @@ class FullyConv_LSTM:
         self.LSTM = torch.nn.LSTMCell(0, 256)
 
         self.Value = torch.nn.Linear(256, 1)
-        self.NonSpatialPolicy = torch.nn.Linear(256, 0)
+        self.NonSpatialPolicy = torch.nn.Linear(256, 3)
 
     def forward(self, screen, minimap, features, x):
 

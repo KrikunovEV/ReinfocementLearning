@@ -1,5 +1,7 @@
 import torch
-import gym
+from pysc2.lib import actions as sc2_actions
+from pysc2.env import sc2_env
+from pysc2.lib import actions
 import numpy as np
 from visdom import Visdom
 from Model import FullyConv_LSTM
@@ -7,14 +9,24 @@ from Model import FullyConv_LSTM
 MAX_EPISODES = 5000
 T_STEPS = 20
 DISCOUNT_FACTOR = 0.99
-env = gym.make('CartPole-v0')
+
+env = sc2_env.SC2Env(
+    map_name="CollectMineralShards",
+    step_mul=8,
+    visualize=False,
+    agent_interface_format=sc2_env.AgentInterfaceFormat(
+        feature_dimensions=sc2_env.Dimensions(
+        screen=64,
+        minimap=64))
+)
 
 vis = Visdom()
 
-model = A2CModel()
+model = FullyConv_LSTM()
 
-CriticOptimizer = torch.optim.Adam(model.CriticParameters(), lr=0.01)
-ActorOptimizer = torch.optim.Adam(model.ActorParameters(), lr=0.001)
+#CriticOptimizer = torch.optim.Adam(model.CriticParameters(), lr=0.01)
+#ActorOptimizer = torch.optim.Adam(model.ActorParameters(), lr=0.001)
+Optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
 
 reward_layout = dict(title="Rewards", xaxis={'title':'episode'}, yaxis={'title':'reward'})
 policy_layout = dict(title="Policy loss", xaxis={'title':'n-step iter'}, yaxis={'title':'loss'})
