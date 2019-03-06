@@ -6,43 +6,45 @@ import numpy as np
 from visdom import Visdom
 from Model import FullyConv_LSTM
 
-MAX_EPISODES = 5000
-T_STEPS = 20
-DISCOUNT_FACTOR = 0.99
-
-env = sc2_env.SC2Env(
-    map_name="CollectMineralShards",
-    step_mul=8,
-    visualize=False,
-    agent_interface_format=sc2_env.AgentInterfaceFormat(
-        feature_dimensions=sc2_env.Dimensions(
-        screen=64,
-        minimap=64))
-)
+from Util import *
 
 vis = Visdom()
 
-model = FullyConv_LSTM()
+reward_layout = dict(title="Episode rewards", xaxis={'title': 'episode'}, yaxis={'title': 'reward'})
+spatial_policy_layout = dict(title="Policy loss", xaxis={'title': 'n-step iter'}, yaxis={'title': 'loss'})
+value_layout = dict(title="Value loss", xaxis={'title': 'n-step iter'}, yaxis={'title': 'loss'})
+entropy_layout = dict(title="Entropies", xaxis={'title': 'n-step iter'}, yaxis={'title': 'entropy'})
 
-#CriticOptimizer = torch.optim.Adam(model.CriticParameters(), lr=0.01)
-#ActorOptimizer = torch.optim.Adam(model.ActorParameters(), lr=0.001)
-Optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
-
-reward_layout = dict(title="Rewards", xaxis={'title':'episode'}, yaxis={'title':'reward'})
-policy_layout = dict(title="Policy loss", xaxis={'title':'n-step iter'}, yaxis={'title':'loss'})
-value_layout = dict(title="Value loss", xaxis={'title':'n-step iter'}, yaxis={'title':'loss'})
-
-REWARDS_DATA = []
-VALUELOSS_DATA = []
-POLICYLOSS_DATA = []
-EPISODES_DATA = []
-
-REWARDS = []
-VALUELOSS = []
-POLICYLOSS = []
-
-nstepIter = 0
 NSTEPITER = []
+VALUELOSS = []
+VALUELOSS_MEAN = []
+valueloss_sample = []
+POLICYLOSS = []
+POLICYLOSS_MEAN = []
+policyloss_sample = []
+ENTROPY = []
+ENTROPY_MEAN = []
+entropy_sample = []
+
+EPISODES = []
+REWARDS = []
+REWARDS_MEAN = []
+reward_sample = []
+
+
+env = sc2_env.SC2Env(
+    map_name = "CollectMineralShards",
+    step_mul = Hyperparam["GameSteps"],
+    visualize = False,
+    agent_interface_format = sc2_env.AgentInterfaceFormat(
+        feature_dimensions = sc2_env.Dimensions(
+        screen = Hyperparam["FeatureSize"],
+        minimap = Hyperparam["FeatureSize"]))
+)
+
+
+model = FullyConv_LSTM()
+Optimizer = torch.optim.Adam(model.parameters(), lr = Hyperparam["LR"])
 
 
 def Train(values, log_probs, entropies, rewards, obs, done):
@@ -62,16 +64,18 @@ def Train(values, log_probs, entropies, rewards, obs, done):
         value_loss += 0.5 * Advantage.pow(2)
         policy_loss -= Advantage.detach() * log_probs[i] + 0.01 * entropies[i]
 
-    Loss = policy_loss + value_loss
+    Loss = policy_loss + 0.5 * value_loss
 
-    ActorOptimizer.zero_grad()
-    CriticOptimizer.zero_grad()
+    #ActorOptimizer.zero_grad()
+    #CriticOptimizer.zero_grad()
+    Optimizer.zero_grad()
 
     Loss.backward()
-    #torch.nn.utils.clip_grad_norm_(model.parameters(), 40)
+    torch.nn.utils.clip_grad_norm_(model.parameters(), 40)
 
-    ActorOptimizer.step()
-    CriticOptimizer.step()
+    #ActorOptimizer.step()
+    #CriticOptimizer.step()
+    Optimizer.step()
 
     POLICYLOSS.append(policy_loss.item())
     VALUELOSS.append(value_loss.item())
@@ -89,26 +93,36 @@ def Train(values, log_probs, entropies, rewards, obs, done):
     trace2_policy = dict(x=NSTEPITER[::10], y=POLICYLOSS_DATA,
                         line={'color': 'red', 'width': 4}, type='custom', mode="lines", name='mean loss')
 
-    #vis._send({'data': [trace_value, trace2_value], 'layout': value_layout, 'win': 'valuewin'})
-    #vis._send({'data': [trace_policy, trace2_policy], 'layout': policy_layout, 'win': 'policywin'})
+    vis._send({'data': [trace_value, trace2_value], 'layout': value_layout, 'win': 'valuewin'})
+    vis._send({'data': [trace_policy, trace2_policy], 'layout': policy_layout, 'win': 'policywin'})
 
 
-for episode in range(MAX_EPISODES):
+for episode in range(Hyperparam["Episodes"]):
 
-    #if episode % 100 == 0 and episode != 0:
-        #torch.save(model.state_dict(), 'models/episodes_' + str(episode) + '.pt')
+    if episode % 100 == 0 and episode != 0:
+        torch.save(model.state_dict(), 'models/' + str(episode) + '.pt')
 
-    obs = env.reset()
-    REWARD = 0
-    values, log_probs, entropies, rewards = [], [], [], []
-
+    values, entropies, spatial_entropies, log_probs, spatial_log_probs, rewards = [], [], [], [], [], []
+    episode_reward = 0
     done = False
-    step = 0
-    while not done:
-        env.render()
+    obs = env.reset()[0]
 
-        # take probs and value
-        logit, value = model(torch.Tensor(obs))
+    while not done:
+
+        screens_obs = []
+        for i, screen in enumerate(obs.observation["feature_screen"]):
+            if i in screen_ind:
+                screens_obs.append(Preprocess(np.array(screen), i, True))
+
+        minimaps_obs = []
+        for i, minimap in enumerate(obs.observation["feature_minimap"]):
+            if i in minimap_ind:
+                minimaps_obs.append(Preprocess(np.array(minimap, i, False)))
+
+        #flat_obs = obs.observation["player"]
+
+        spatial_logits, logits, value = model(torch.Tensor(screens_obs), torch.Tensor(minimaps_obs), None)
+
         prob = torch.nn.functional.softmax(logit, dim=-1)
         log_prob = torch.nn.functional.log_softmax(logit, dim=-1)
 
@@ -136,7 +150,7 @@ for episode in range(MAX_EPISODES):
         if step % T_STEPS == 0:
             nstepIter += 1
             Train(values, log_probs, entropies, rewards, obs, done)
-            values, log_probs, entropies, rewards = [], [], [], []
+            values, entropies, spatial_entropies, log_probs, spatial_log_probs, rewards = [], [], [], [], [], []
 
     nstepIter += 1
     Train(values, log_probs, entropies, rewards, obs, done)

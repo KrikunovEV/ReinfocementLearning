@@ -34,6 +34,7 @@ screen_ind = [1, 5, 8, 9, 14, 15]
 minimap_ind = [1, 4, 5]
 screens_obs_all = obss.observation["feature_screen"]
 minimaps_obs_all = obss.observation["feature_minimap"]
+flat = obss.observation["player"]
 screens_obs = []
 minimap_obs = []
 
