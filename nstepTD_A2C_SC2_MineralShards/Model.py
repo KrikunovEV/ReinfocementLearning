@@ -1,16 +1,27 @@
 import torch
-
+from enum import Enum
+from pysc2.lib import features as sc2_features
 from Util import *
 
 class Flatten(torch.nn.Module):
     def forward(self, input):
         return input.view(input.size(0), -1)
 
+SCREEN_FEATURES = sc2_features.SCREEN_FEATURES
+MINIMAP_FEATURES = sc2_features.MINIMAP_FEATURES
+CATEGORICAL = sc2_features.FeatureType.CATEGORICAL
 
-class FullyConv_LSTM(torch.nn.Module):
+class Type(Enum):
+    SCREEN = 0
+    MINIMAP = 1
+    FLAT = 2
+
+class FullyConv(torch.nn.Module):
 
     def __init__(self):
-        super(FullyConv_LSTM, self).__init__()
+        super(FullyConv, self).__init__()
+
+        self.PreprocessConv = torch.nn.Conv2d(Hyperparam["FeatureSize"], 1, 1)
 
         self.MinimapNet = torch.nn.Sequential(
             torch.nn.Conv2d(FeatureMinimapCount, 16, 5, padding=2),
@@ -26,7 +37,7 @@ class FullyConv_LSTM(torch.nn.Module):
             torch.nn.ReLU()
         )
 
-        self.SpatialPolicy = torch.nn.Conv2d(32 + 32, 1, 1)
+        self.SpatialPolicy = torch.nn.Conv2d(32 + 32 + 1, 1, 1)
 
         # features size**2, 32 filters, 2 from minimap and screen nets
         self.Linear = torch.nn.Sequential(
@@ -52,3 +63,23 @@ class FullyConv_LSTM(torch.nn.Module):
         value = self.Value(nonspatial_data)
 
         return spatial_logits, logits, value
+
+    def Preprocess(self, feature, index, type):
+
+        if type == Type.FLAT:
+            pass
+
+        if type == Type.SCREEN:
+            FEATURES = SCREEN_FEATURES
+        else:
+            FEATURES = MINIMAP_FEATURES
+
+        if FEATURES[index].type == CATEGORICAL:
+            indecies = torch.unsqueeze(feature, 2)
+
+            feature = torch.FloatTensor(Hyperparam["FeatureSize"], ["FeatureSize"], FEATURES[index].scale).zero_()
+            feature.scatter_(2, indecies, 1)
+        else:
+            feature = torch.log2(feature + 0.00000001)
+
+        return feature

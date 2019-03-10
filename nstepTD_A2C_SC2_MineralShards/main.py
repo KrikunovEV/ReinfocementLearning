@@ -4,7 +4,7 @@ from pysc2.env import sc2_env
 from pysc2.lib import actions
 import numpy as np
 from visdom import Visdom
-from Model import FullyConv_LSTM
+from Model import FullyConv
 
 from Util import *
 
@@ -43,7 +43,7 @@ env = sc2_env.SC2Env(
 )
 
 
-model = FullyConv_LSTM()
+model = FullyConv()
 Optimizer = torch.optim.Adam(model.parameters(), lr = Hyperparam["LR"])
 
 
@@ -112,16 +112,16 @@ for episode in range(Hyperparam["Episodes"]):
         screens_obs = []
         for i, screen in enumerate(obs.observation["feature_screen"]):
             if i in screen_ind:
-                screens_obs.append(Preprocess(np.array(screen), i, True))
+                screens_obs.append(torch.Tensor(screen))
 
         minimaps_obs = []
         for i, minimap in enumerate(obs.observation["feature_minimap"]):
             if i in minimap_ind:
-                minimaps_obs.append(Preprocess(np.array(minimap, i, False)))
+                minimaps_obs.append(torch.Tensor(minimap))
 
-        #flat_obs = obs.observation["player"]
+        flat_obs = obs.observation["player"]
 
-        spatial_logits, logits, value = model(torch.Tensor(screens_obs), torch.Tensor(minimaps_obs), None)
+        spatial_logits, logits, value = model(screens_obs, minimaps_obs, flat_obs)
 
         prob = torch.nn.functional.softmax(logit, dim=-1)
         log_prob = torch.nn.functional.log_softmax(logit, dim=-1)

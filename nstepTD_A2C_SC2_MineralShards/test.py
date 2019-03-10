@@ -5,11 +5,17 @@ from pysc2.lib import actions
 import matplotlib.pyplot as plt
 import numpy as np
 
+import torch
+
+#print(inp)
+#print(inp_)
+#print(one_hot)
+
 from pysc2.lib import features as sc2_features
 if sc2_features.SCREEN_FEATURES[0].type == sc2_features.FeatureType.SCALAR:
     print(True)
 
-'''
+
 env = sc2_env.SC2Env(
     map_name="CollectMineralShards",
     step_mul=8,
@@ -23,6 +29,20 @@ env = sc2_env.SC2Env(
 obs = env.reset()[0] # num agent
 
 screens = obs.observation["feature_screen"]
+
+inp = torch.LongTensor(screens[1])
+inp_ = torch.unsqueeze(inp, 2)
+
+one_hot = torch.FloatTensor(64, 64, 4).zero_()
+one_hot.scatter_(2, inp_, 1)
+print(len(one_hot))
+
+conv = torch.nn.Conv2d(64, 1, 1)
+data = conv(one_hot)
+print(data)
+print(len(data))
+env.close()
+'''
 minimaps = obs.observation["feature_minimap"]
 
 import sys
