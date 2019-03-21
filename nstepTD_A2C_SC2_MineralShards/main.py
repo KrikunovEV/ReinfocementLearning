@@ -1,35 +1,8 @@
 import torch
-from pysc2.lib import actions as sc2_actions
 from pysc2.env import sc2_env
-from pysc2.lib import actions
-import numpy as np
-from visdom import Visdom
 from Model import FullyConv
 
 from Util import *
-
-vis = Visdom()
-
-reward_layout = dict(title="Episode rewards", xaxis={'title': 'episode'}, yaxis={'title': 'reward'})
-spatial_policy_layout = dict(title="Policy loss", xaxis={'title': 'n-step iter'}, yaxis={'title': 'loss'})
-value_layout = dict(title="Value loss", xaxis={'title': 'n-step iter'}, yaxis={'title': 'loss'})
-entropy_layout = dict(title="Entropies", xaxis={'title': 'n-step iter'}, yaxis={'title': 'entropy'})
-
-NSTEPITER = []
-VALUELOSS = []
-VALUELOSS_MEAN = []
-valueloss_sample = []
-POLICYLOSS = []
-POLICYLOSS_MEAN = []
-policyloss_sample = []
-ENTROPY = []
-ENTROPY_MEAN = []
-entropy_sample = []
-
-EPISODES = []
-REWARDS = []
-REWARDS_MEAN = []
-reward_sample = []
 
 
 env = sc2_env.SC2Env(
@@ -44,57 +17,51 @@ env = sc2_env.SC2Env(
 
 
 model = FullyConv()
-Optimizer = torch.optim.Adam(model.parameters(), lr = Hyperparam["LR"])
+Optimizer = torch.optim.Adam(model.parameters(), lr=Hyperparam["LR"])
 
 
-def Train(values, log_probs, entropies, rewards, obs, done):
+DatamMgr = VisdomWrap()
+
+
+def Train(values, entropies, spatial_entropies, log_policy, rewards, obs, done):
 
     G = 0
     if not done:
-        _, G = model(torch.Tensor(obs))
+        screens_obs = []
+        for i, screen in enumerate(obs.observation["feature_screen"]):
+            if i in screen_ind:
+                screens_obs.append(screen)
+
+        minimaps_obs = []
+        for i, minimap in enumerate(obs.observation["feature_minimap"]):
+            if i in minimap_ind:
+                minimaps_obs.append(minimap)
+
+        _, _, G = model(screens_obs, minimaps_obs)
         G = G.detach()
 
     value_loss = 0
     policy_loss = 0
 
     for i in reversed(range(len(rewards))):
-        G = rewards[i] + DISCOUNT_FACTOR * G
+        G = rewards[i] + Hyperparam["Discount"] * G
         Advantage = G - values[i]
 
         value_loss += 0.5 * Advantage.pow(2)
-        policy_loss -= Advantage.detach() * log_probs[i] + 0.01 * entropies[i]
+        policy_loss -= Advantage.detach() * log_policy[i] + Hyperparam["Entropy"] * entropies[i]
 
     Loss = policy_loss + 0.5 * value_loss
 
-    #ActorOptimizer.zero_grad()
-    #CriticOptimizer.zero_grad()
     Optimizer.zero_grad()
 
     Loss.backward()
     torch.nn.utils.clip_grad_norm_(model.parameters(), 40)
 
-    #ActorOptimizer.step()
-    #CriticOptimizer.step()
     Optimizer.step()
 
-    POLICYLOSS.append(policy_loss.item())
-    VALUELOSS.append(value_loss.item())
-
-    NSTEPITER.append(nstepIter)
-    if nstepIter % 10 == 0:
-        VALUELOSS_DATA.append(np.mean(VALUELOSS[len(VALUELOSS) - 10:]))
-        POLICYLOSS_DATA.append(np.mean(POLICYLOSS[len(POLICYLOSS) - 10:]))
-
-    trace_value = dict(x=NSTEPITER, y=VALUELOSS, type='custom', mode="lines", name='loss')
-    trace_policy = dict(x=NSTEPITER, y=POLICYLOSS, type='custom', mode="lines", name='loss')
-
-    trace2_value = dict(x=NSTEPITER[::10], y=VALUELOSS_DATA,
-                  line={'color': 'red', 'width': 4}, type='custom', mode="lines", name='mean loss')
-    trace2_policy = dict(x=NSTEPITER[::10], y=POLICYLOSS_DATA,
-                        line={'color': 'red', 'width': 4}, type='custom', mode="lines", name='mean loss')
-
-    vis._send({'data': [trace_value, trace2_value], 'layout': value_layout, 'win': 'valuewin'})
-    vis._send({'data': [trace_policy, trace2_policy], 'layout': policy_layout, 'win': 'policywin'})
+    DatamMgr.SendData(True, value_loss.item(), policy_loss.item(),
+                      np.mean([entropy.detach().numpy() for entropy in entropies]),
+                      np.mean([entropy.detach().numpy() for entropy in spatial_entropies]), 0)
 
 
 for episode in range(Hyperparam["Episodes"]):
@@ -102,8 +69,9 @@ for episode in range(Hyperparam["Episodes"]):
     if episode % 100 == 0 and episode != 0:
         torch.save(model.state_dict(), 'models/' + str(episode) + '.pt')
 
-    values, entropies, spatial_entropies, log_probs, spatial_log_probs, rewards = [], [], [], [], [], []
+    values, entropies, spatial_entropies, log_policy, rewards = [], [], [], [], []
     episode_reward = 0
+    step = 0
     done = False
     obs = env.reset()[0]
 
@@ -112,58 +80,77 @@ for episode in range(Hyperparam["Episodes"]):
         screens_obs = []
         for i, screen in enumerate(obs.observation["feature_screen"]):
             if i in screen_ind:
-                screens_obs.append(torch.Tensor(screen))
+                screens_obs.append(screen)
 
         minimaps_obs = []
         for i, minimap in enumerate(obs.observation["feature_minimap"]):
             if i in minimap_ind:
-                minimaps_obs.append(torch.Tensor(minimap))
+                minimaps_obs.append(minimap)
 
-        flat_obs = obs.observation["player"]
+        #flat_obs = obs.observation["player"]
 
-        spatial_logits, logits, value = model(screens_obs, minimaps_obs, flat_obs)
+        spatial_logits, logits, value = model(screens_obs, minimaps_obs)
 
-        prob = torch.nn.functional.softmax(logit, dim=-1)
-        log_prob = torch.nn.functional.log_softmax(logit, dim=-1)
+        action_mask = obs.observation["available_actions"]
+        logits = logits[action_mask]
+        spatial_logits = spatial_logits.flatten()
 
-        # take action
-        prob_np = prob.detach().numpy()
-        action = np.random.choice(prob_np, 1, p=prob_np)
-        action = np.where(prob_np == action)[0][0]
-        log_prob = log_prob[action]
+        probs = torch.nn.functional.softmax(logits, dim=-1)
+        spatial_probs = torch.nn.functional.softmax(spatial_logits, dim=-1)
 
-        obs, reward, done, info = env.step(action)
-        np.clip(reward, -1, 1)
+        log_probs = torch.nn.functional.log_softmax(logits, dim=-1)
+        spatial_log_probs = torch.nn.functional.log_softmax(spatial_logits, dim=-1)
 
-        entropies.append(-(log_prob * prob).sum())
-        log_probs.append(log_prob)
+        # action
+        probs_np = probs.detach().numpy()
+        action = np.random.choice(probs_np, 1, p=probs_np)
+        action = np.where(probs_np == action)[0][0]
+        prob = probs[action]
+        action = action_mask[action]
+
+        probs_np = spatial_probs.detach().numpy()
+        args = []#[[0]]
+        spatial_log_prob = []
+        for arg_type in FUNCTION_TYPES[FUNCTIONS[action].function_type]:
+            if len(arg_type) > 1:
+                spatial_action = np.random.choice(probs_np, 1, p=probs_np)
+                spatial_action = np.where(probs_np == spatial_action)[0][0]
+                spatial_log_prob.append(spatial_log_probs[spatial_action])
+                prob *= spatial_probs[spatial_action]
+                y = action // Hyperparam["FeatureSize"]
+                x = action % Hyperparam["FeatureSize"]
+                args.append([x, y])
+            else:
+                #args.append([0])
+                print("len less than 2")
+
+        # sc2_actions.FUNCTIONS.select_army.id
+        print(action, args)
+        obs = env.step(actions=[sc2_actions.FunctionCall(action, args)])[0]
+
+        reward = obs.reward
+        #np.clip(reward, -1, 1)
+
+        done = (obs.step_type == 2)
+
+        entropies.append(-(log_probs * probs).sum())
+        spatial_entropies.append(-(spatial_log_probs * spatial_probs).sum())
+        log_policy.append(torch.log(prob))
         values.append(value)
         rewards.append(reward)
 
-        REWARD += reward
+        episode_reward += reward
 
         if done:
-            REWARDS.append(REWARD)
+            DatamMgr.SendData(False, 0, 0, 0, 0, episode_reward)
             break
 
         step += 1
-        if step % T_STEPS == 0:
-            nstepIter += 1
-            Train(values, log_probs, entropies, rewards, obs, done)
-            values, entropies, spatial_entropies, log_probs, spatial_log_probs, rewards = [], [], [], [], [], []
+        if step % Hyperparam["Steps"] == 0:
+            Train(values, entropies, spatial_entropies, log_policy, rewards, obs, done)
+            values, entropies, spatial_entropies, log_policy, rewards = [], [], [], [], []
 
-    nstepIter += 1
-    Train(values, log_probs, entropies, rewards, obs, done)
-
-    if episode % 10 == 0:
-        REWARDS_DATA.append(np.mean(REWARDS[len(REWARDS)-10:]))
-
-    EPISODES_DATA.append(episode)
-
-    trace = dict(x=EPISODES_DATA, y=REWARDS,  type='custom', mode="lines", name='reward')
-    trace2 = dict(x=EPISODES_DATA[::10], y=REWARDS_DATA,
-                  line={'color': 'red', 'width': 4}, type='custom', mode="lines", name='mean reward')
-    vis._send({'data':[trace, trace2], 'layout':reward_layout, 'win':'rewardwin'})
+    Train(values, entropies, spatial_entropies, log_policy, rewards, obs, done)
 
 
 env.close()

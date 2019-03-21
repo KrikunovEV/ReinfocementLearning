@@ -81,7 +81,7 @@ else:
 
 env.send_chat_messages("Hey")
 for i in range(0,100000000):
-    new_obs = env.step(actions=[sc2_actions.FunctionCall(_MOVE, [[0], [25, 25]])])[0]
+    new_obs = env.step(actions=[sc2_actions.FunctionCall(_MOVE, [[0], [0, 25]])])[0]
 
     #print(new_obs)
     #break

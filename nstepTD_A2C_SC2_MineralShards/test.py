@@ -28,19 +28,20 @@ env = sc2_env.SC2Env(
 
 obs = env.reset()[0] # num agent
 
-screens = obs.observation["feature_screen"]
+screen = obs.observation["feature_screen"][1]
 
-inp = torch.LongTensor(screens[1])
+inp = torch.LongTensor(screen)
 inp_ = torch.unsqueeze(inp, 2)
+print(inp_)
 
-one_hot = torch.FloatTensor(64, 64, 4).zero_()
-one_hot.scatter_(2, inp_, 1)
-print(len(one_hot))
+#one_hot = torch.FloatTensor(64, 64, 4).zero_()
+#one_hot.scatter_(2, inp_, 1)
+#print(one_hot)
 
-conv = torch.nn.Conv2d(64, 1, 1)
-data = conv(one_hot)
-print(data)
-print(len(data))
+conv = torch.nn.Conv2d(2, 1, 1)
+#data = conv(torch.unsqueeze(one_hot, 0))[0][0]
+#print(data)
+#print(len(data))
 env.close()
 '''
 minimaps = obs.observation["feature_minimap"]
