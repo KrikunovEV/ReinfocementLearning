@@ -1,90 +1,106 @@
 import torch
-from enum import Enum
-from pysc2.lib import features as sc2_features
+import torch.nn as nn
 from Util import *
 
-SCREEN_FEATURES = sc2_features.SCREEN_FEATURES
-MINIMAP_FEATURES = sc2_features.MINIMAP_FEATURES
-CATEGORICAL = sc2_features.FeatureType.CATEGORICAL
 
-class Type(Enum):
-    SCREEN = 0
-    MINIMAP = 1
-    FLAT = 2
-
-class FullyConv(torch.nn.Module):
+class FullyConv(nn.Module):
 
     def __init__(self):
         super(FullyConv, self).__init__()
 
-        #self.PreprocessConv = torch.nn.Conv2d(Hyperparam["FeatureSize"], 1, 1)
+        self.MapPreproc = nn.Conv2d(Params["MapPreprocNum"], FeatureMinimapCount, 1)
+        self.ScrPreproc = nn.Conv2d(Params["ScrPreprocNum"], FeatureScrCount - 2, 1) # -2 for SCALAR
 
-        self.MinimapNet = torch.nn.Sequential(
-            torch.nn.Conv2d(FeatureMinimapCount, 16, 5, padding=2),
-            torch.nn.ReLU(),
-            torch.nn.Conv2d(16, 32, 3, padding=1),
-            torch.nn.ReLU()
+        self.FlatNet = nn.Sequential(
+            nn.Linear(11, Params["FeatureSize"]**2),
+            nn.Tanh()
         )
 
-        self.ScreenNet = torch.nn.Sequential(
-            torch.nn.Conv2d(FeatureScrCount, 16, 5, padding=2),
-            torch.nn.ReLU(),
-            torch.nn.Conv2d(16, 32, 3, padding=1),
-            torch.nn.ReLU()
+        self.MinimapNet = nn.Sequential(
+            nn.Conv2d(FeatureMinimapCount, 16, 5, padding=2),
+            nn.ReLU(),
+            nn.Conv2d(16, 32, 3, padding=1),
+            nn.ReLU()
         )
 
-        self.SpatialPolicy = torch.nn.Conv2d(32 + 32, 1, 1)
-
-        # features size**2, 32 filters, 2 from minimap and screen nets
-        self.LinearNet = torch.nn.Sequential(
-            torch.nn.Linear(Hyperparam["FeatureSize"]**2 * 32 * 2, 256),
-            torch.nn.ReLU()
+        self.ScreenNet = nn.Sequential(
+            nn.Conv2d(FeatureScrCount, 16, 5, padding=2),
+            nn.ReLU(),
+            nn.Conv2d(16, 32, 3, padding=1),
+            nn.ReLU()
         )
 
-        self.Value = torch.nn.Linear(256, 1)
-        self.Policy = torch.nn.Linear(256, FunctionCount)
+        self.SpatialPolicy = nn.Conv2d(32 + 32 + 1, 1, 1)
 
+        # features size**2, 32 filters, 2 from minimap and screen nets + from flat features
+        self.LinearNet = nn.Sequential(
+            nn.Linear(Params["FeatureSize"]**2 * (32 * 2 + 1), 256),
+            nn.ReLU()
+        )
 
-    def forward(self, screens, minimaps):
-        screens = torch.Tensor(screens).unsqueeze_(0)
-        minimaps = torch.Tensor(minimaps).unsqueeze_(0)
+        self.Value = nn.Linear(256, 1)
+        self.Policy = nn.Linear(256, FunctionCount)
 
-        scr_data = self.ScreenNet(screens).squeeze_(0)
-        map_data = self.MinimapNet(minimaps).squeeze_(0)
+    def forward(self, scr_features, map_features, flat_features):
 
-        conc_data = torch.cat((scr_data, map_data), 0).unsqueeze_(0)
+        scr_features = self._preprocess(scr_features, Type.SCREEN)
+        map_features = self._preprocess(map_features, Type.MINIMAP)
+        flat_features = self._preprocess(flat_features, Type.FLAT)
 
-        spatial_logits = self.SpatialPolicy(conc_data)
+        scr_features = self.ScreenNet(scr_features)
+        map_features = self.MinimapNet(map_features)
 
-        nonspatial_data = conc_data.flatten()
-        nonspatial_data = self.LinearNet(nonspatial_data)
-        logits = self.Policy(nonspatial_data)
-        value = self.Value(nonspatial_data)
+        features = torch.cat((scr_features, map_features, flat_features), 1)
+
+        spatial_logits = self.SpatialPolicy(features)
+
+        nonspatials = features.flatten()
+        nonspatials = self.LinearNet(nonspatials)
+        logits = self.Policy(nonspatials)
+        value = self.Value(nonspatials)
 
         return spatial_logits, logits, value
 
+    def _preprocess(self, features, features_type):
 
-    def Preprocess(self, feature, index, type):
+        if features_type == Type.FLAT:
+            features = self.FlatNet(torch.Tensor(features)).view(1, 1, -1, Params["FeatureSize"])
 
-        if type == Type.FLAT:
-            pass
+        elif features_type == Type.SCREEN:
+            categorical = torch.Tensor()
+            numerical = torch.Tensor()
 
-        if type == Type.SCREEN:
-            FEATURES = SCREEN_FEATURES
+            for i, feature in enumerate(features):
+                if SCREEN_FEATURES[i].type == CATEGORICAL:
+
+                    scale = SCREEN_FEATURES[i].scale
+                    if i == 1:
+                        scale = len(MY_UNIT_TYPE) + 1
+                        feature = np.array(feature)
+                        for j, unit_type in enumerate(MY_UNIT_TYPE):
+                            feature[feature == unit_type] = j + 1
+
+                    # N x 1 x H x W
+                    tmp = torch.LongTensor(feature).view(1, 1, Params["FeatureSize"], Params["FeatureSize"])
+                    one_hots = torch.Tensor(tmp.size(0), scale, tmp.size(2), tmp.size(3)).zero_()
+                    one_hots = one_hots.scatter_(1, tmp.data, 1)
+                    categorical = torch.cat((categorical, one_hots[0]))
+                else:
+                    numerical = torch.cat((numerical, torch.Tensor(feature).unsqueeze(0)))
+
+            categorical = self.ScrPreproc(torch.Tensor(categorical.unsqueeze(0)))
+            numerical = torch.log2(numerical + 1).unsqueeze(0)
+            features = torch.cat((categorical, numerical), 1)
+
         else:
-            FEATURES = MINIMAP_FEATURES
+            buffer = torch.Tensor()
+            for i, feature in enumerate(features):
+                # N x 1 x H x W
+                tmp = torch.LongTensor(feature).view(1, 1, Params["FeatureSize"], Params["FeatureSize"])
+                one_hots = torch.Tensor(tmp.size(0), MINIMAP_FEATURES[i].scale, tmp.size(2), tmp.size(3)).zero_()
+                one_hots = one_hots.scatter_(1, tmp.data, 1)
+                buffer = torch.cat((buffer, one_hots[0]))
 
-        if FEATURES[index].type == CATEGORICAL:
-            pass
-            '''
-            indices = torch.unsqueeze(torch.LongTensor(feature), 2)
+            features = self.MapPreproc(buffer.unsqueeze(0))
 
-            feature = torch.FloatTensor(Hyperparam["FeatureSize"], Hyperparam["FeatureSize"], FEATURES[index].scale).zero_()
-            feature.scatter_(2, indices, 1)
-
-            feature = self.PreprocessConv(torch.unsqueeze(feature, 0))[0][0]
-            '''
-        else:
-            feature = torch.log2(torch.Tensor(feature) + 0.00000001)
-
-        return feature
+        return features

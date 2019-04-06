@@ -1,61 +1,32 @@
+
+from Util import *
+
 from pysc2.lib import actions as sc2_actions
-from pysc2.env import sc2_env
-from pysc2.lib import actions
-
-import matplotlib.pyplot as plt
-import numpy as np
-
-import torch
-
-#print(inp)
-#print(inp_)
-#print(one_hot)
-
-from pysc2.lib import features as sc2_features
-if sc2_features.SCREEN_FEATURES[0].type == sc2_features.FeatureType.SCALAR:
-    print(True)
 
 
-env = sc2_env.SC2Env(
-    map_name="CollectMineralShards",
-    step_mul=8,
-    visualize=False,
-    agent_interface_format=sc2_env.AgentInterfaceFormat(
-        feature_dimensions=sc2_env.Dimensions(
-        screen=64,
-        minimap=64))
-)
+FUNCTION_TYPES = sc2_actions.FUNCTION_TYPES
+for a in FUNCTIONS[3].args:
+    if a is sc2_actions.TYPES.queued:
+        continue
+    print(len(a.sizes))
+#print(FUNCTION_TYPES[FUNCTIONS[331].function_type][1])
 
-obs = env.reset()[0] # num agent
+action_mask = [  1  , 2   , 4  , 5, 453  , 7, 331 ,332, 333, 334 , 12 , 13 ,274]
 
-screen = obs.observation["feature_screen"][1]
+actions_ids = [i for i, action in enumerate(MY_FUNCTION_TYPE) if action in action_mask]
 
-inp = torch.LongTensor(screen)
-inp_ = torch.unsqueeze(inp, 2)
-print(inp_)
-
-#one_hot = torch.FloatTensor(64, 64, 4).zero_()
-#one_hot.scatter_(2, inp_, 1)
-#print(one_hot)
-
-conv = torch.nn.Conv2d(2, 1, 1)
-#data = conv(torch.unsqueeze(one_hot, 0))[0][0]
-#print(data)
-#print(len(data))
-env.close()
-'''
-minimaps = obs.observation["feature_minimap"]
-
-import sys
-np.set_printoptions(threshold=sys.maxsize)
-print(np.array(screens[8]))
+probs = [0.1, 0.4, 0.3, 0.2]
 
 
-obs = env.step(actions=[sc2_actions.FunctionCall(actions.FUNCTIONS.select_army.id, [[0]])])[0]
-flat = obs.observation["player"]
-print(flat)
+prob = np.random.choice(probs, 1, p=probs)
+action_id = np.where(probs == prob)[0][0]
+prob = probs[action_id]  # to get attached tensor
+action_id_result = MY_FUNCTION_TYPE[actions_ids[action_id]]  # to get real id
 
-
-
-env.close()
-'''
+#print(MY_FUNCTION_TYPE)
+#print()
+#print("available: ", actions_ids)
+#print("prob: ", prob)
+#print("from available: ", action_id)
+#print("from all my actions: ", actions_ids[action_id])
+#print("from actual: ", action_id_result)

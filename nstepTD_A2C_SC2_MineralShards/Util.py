@@ -1,28 +1,70 @@
 from pysc2.lib import actions as sc2_actions
+from pysc2.lib import features as sc2_features
+from pysc2.lib import static_data
 import numpy as np
 from visdom import Visdom
+from enum import Enum
 
+
+MY_FUNCTION_TYPE = [
+    0,      # no op
+    2,      # select point
+    3,      # select rect
+    5,      # select unit
+    7,      # select army
+    331,    # goto
+    #6,      # select idle worker (F1)
+    #11,     # build queue
+    #42,     # build barracks
+    #268,    # gathering SCV
+    #477,    # train Marine
+    #490     # train SCV
+]
 FUNCTION_TYPES = sc2_actions.FUNCTION_TYPES
-FunctionCount = len(FUNCTION_TYPES)
+FunctionCount = len(MY_FUNCTION_TYPE)
 
 FUNCTIONS = sc2_actions.FUNCTIONS
 
-Hyperparam = {
+MY_UNIT_TYPE = [
+    18,  # command center
+    21,  # barracks
+    45,  # SCV
+    48,  # marine
+    341, # mineral field
+    1680 # FAKE MINERAL
+]
+
+Params = {
     "Episodes": 100000,
     "Steps": 40,
     "Discount": 0.99,
-    "Entropy": 0.001,
-    "GameSteps": 8, # 180 APM
+    "Entropy": 0.01,  # 0.001
+    "GameSteps": 8,  # 180 APM
     "LR": 0.0001,
-    "FeatureSize": 64
+    "FeatureSize": 64,
+    "ScrPreprocNum": 5 + len(MY_UNIT_TYPE)+1 + 2,
+    "MapPreprocNum": 5 + 2
 }
 
-screen_ind = [1, 5, 8, 9, 14, 15]
-minimap_ind = [1, 4, 5]
-FeatureScrCount = len(screen_ind)
-FeatureMinimapCount = len(minimap_ind)
 
-class VisdomWrap():
+class Type(Enum):
+    SCREEN = 0
+    MINIMAP = 1
+    FLAT = 2
+
+
+scr_indices = [5, 6, 7, 14, 15]
+map_indices = [5, 6]
+FeatureScrCount = len(scr_indices)
+FeatureMinimapCount = len(map_indices)
+
+
+SCREEN_FEATURES = [sc2_features.SCREEN_FEATURES[i] for i in scr_indices]
+MINIMAP_FEATURES = [sc2_features.MINIMAP_FEATURES[i] for i in map_indices]
+CATEGORICAL = sc2_features.FeatureType.CATEGORICAL
+
+
+class VisdomWrap:
 
     def __init__(self):
         self.vis = Visdom()
@@ -32,7 +74,7 @@ class VisdomWrap():
         self.value_layout = dict(title="Value loss", xaxis={'title': 'n-step iter'}, yaxis={'title': 'loss'})
         self.entropy_layout = dict(title="Entropies", xaxis={'title': 'n-step iter'}, yaxis={'title': 'entropy'})
         self.spatial_entropy_layout = dict(title="Spatial entropies", xaxis={'title': 'n-step iter'},
-                                      yaxis={'title': ' spatial entropy'})
+                                           yaxis={'title': ' spatial entropy'})
 
         self.NSTEPITER = []
         self.VALUELOSS = []
@@ -53,8 +95,7 @@ class VisdomWrap():
         self.REWARDS_MEAN = []
         self.reward_sample = []
 
-
-    def SendData(self, is_nstep, value_loss, policy_loss, entropy, spatial_entropy, reward):
+    def send_data(self, is_nstep, value_loss, policy_loss, entropy, spatial_entropy, reward):
 
         if is_nstep:
 
@@ -63,7 +104,7 @@ class VisdomWrap():
             self.entropy_sample.append(float(entropy))
             self.spatial_entropy_sample.append(float(spatial_entropy))
 
-            if len(self.valueloss_sample) == 25:
+            if len(self.valueloss_sample) == 2:
                 self.NSTEPITER.append(len(self.NSTEPITER) + 1)
                 self.VALUELOSS.append(np.mean(self.valueloss_sample))
                 self.POLICYLOSS.append(np.mean(self.policyloss_sample))
@@ -88,14 +129,17 @@ class VisdomWrap():
                                              name='spatial entropy')
 
                 trace_value_mean = dict(x=self.NSTEPITER[::10], y=self.VALUELOSS_MEAN,
-                                    line={'color': 'red', 'width': 3}, type='custom', mode="lines", name='mean loss')
+                                        line={'color': 'red', 'width': 3}, type='custom', mode="lines",
+                                        name='mean loss')
                 trace_policy_mean = dict(x=self.NSTEPITER[::10], y=self.POLICYLOSS_MEAN,
-                                     line={'color': 'red', 'width': 3}, type='custom', mode="lines", name='mean loss')
+                                         line={'color': 'red', 'width': 3}, type='custom', mode="lines",
+                                         name='mean loss')
                 trace_entropy_mean = dict(x=self.NSTEPITER[::10], y=self.ENTROPY_MEAN,
-                                    line={'color': 'red', 'width': 3}, type='custom', mode="lines", name='mean entropy')
-                trace_spatial_entropy_mean = dict(x=self.NSTEPITER[::10], y=self.SPATIALENTROPY_MEAN,
                                           line={'color': 'red', 'width': 3}, type='custom', mode="lines",
-                                          name='mean spatial entropy')
+                                          name='mean entropy')
+                trace_spatial_entropy_mean = dict(x=self.NSTEPITER[::10], y=self.SPATIALENTROPY_MEAN,
+                                                  line={'color': 'red', 'width': 3}, type='custom', mode="lines",
+                                                  name='mean spatial entropy')
 
                 self.vis._send(
                     {'data': [trace_value, trace_value_mean], 'layout': self.value_layout, 'win': 'valuewin'})
@@ -110,7 +154,7 @@ class VisdomWrap():
         else:
 
             self.reward_sample.append(reward)
-            if(len(self.reward_sample) == 5):
+            if len(self.reward_sample) == 1:
                 self.EPISODES.append(len(self.EPISODES) + 1)
                 self.REWARDS.append(np.mean(self.reward_sample))
                 self.reward_sample = []
@@ -120,7 +164,8 @@ class VisdomWrap():
 
                 trace_reward = dict(x=self.EPISODES, y=self.REWARDS, type='custom', mode="lines", name='reward')
                 trace_reward_mean = dict(x=self.EPISODES[::10], y=self.REWARDS_MEAN,
-                                    line={'color': 'red', 'width': 4}, type='custom', mode="lines", name='mean reward')
+                                         line={'color': 'red', 'width': 4}, type='custom', mode="lines",
+                                         name='mean reward')
 
                 self.vis._send(
                     {'data': [trace_reward, trace_reward_mean], 'layout': self.reward_layout, 'win': 'rewardwin'})
