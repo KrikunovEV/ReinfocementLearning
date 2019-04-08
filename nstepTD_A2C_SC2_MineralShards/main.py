@@ -22,7 +22,7 @@ env = sc2_env.SC2Env(
             minimap=Params["FeatureSize"]))
 )
 
-model = FullyConv()
+model = FullyConv().cuda()
 Optimizer = optim.Adam(model.parameters(), lr=Params["LR"])
 DataMgr = VisdomWrap()
 
@@ -46,24 +46,28 @@ def train(values, entropies, spatial_entropies, logs, rewards, obs, done):
         advantage = G - values[i]
 
         value_loss = value_loss + 0.5 * advantage.pow(2)
-        policy_loss = policy_loss - (advantage.detach() * logs[i] + Params["Entropy"] * entropies[i])
+        policy_loss = policy_loss - (advantage.detach() * logs[i] +
+                                     Params["Entropy"] * (entropies[i] + spatial_entropies[i]))
 
     loss = policy_loss + 0.5 * value_loss
 
     Optimizer.zero_grad()
     loss.backward()
-    nn.utils.clip_grad_norm_(model.parameters(), 40)
+    nn.utils.clip_grad_norm_(model.parameters(), Params["GradClip"])
     Optimizer.step()
 
     DataMgr.send_data(True, value_loss.item(), policy_loss.item(),
-                      np.mean([entropy.detach().numpy() for entropy in entropies]),
-                      np.mean([entropy.detach().numpy() for entropy in spatial_entropies]), 0)
+                      np.mean([entropy.item() for entropy in entropies]),
+                      np.mean([entropy.item() for entropy in spatial_entropies]), 0)
 
 
 for episode in range(Params["Episodes"]):
 
     if episode % 100 == 0 and episode != 0:
-        torch.save(model.state_dict(), 'models/' + str(episode) + '.pt')
+        torch.save(model.state_dict(), 'models3/' + str(episode) + '.pt')
+
+    for param_group in Optimizer.param_groups:
+        param_group['lr'] = min(Params["LR"] * (1 - episode / Params["Episodes"]), param_group['lr'])
 
     values, entropies, spatial_entropies, logs, rewards = [], [], [], [], []
     episode_reward = 0
@@ -90,7 +94,7 @@ for episode in range(Params["Episodes"]):
         log_probs = functional.log_softmax(logits, dim=-1)
         spatial_log_probs = functional.log_softmax(spatial_logits, dim=-1)
 
-        probs_detached = probs.detach().numpy()
+        probs_detached = probs.cpu().detach().numpy()
         prob = np.random.choice(probs_detached, 1, p=probs_detached)
         action_id = np.where(probs_detached == prob)[0][0]
         prob = probs[action_id]  # to get attached tensor
@@ -101,7 +105,7 @@ for episode in range(Params["Episodes"]):
             if len(arg.sizes) == 1:
                 action_args.append([0])
             elif len(arg.sizes) > 1:
-                probs_detached = spatial_probs.detach().numpy()
+                probs_detached = spatial_probs.cpu().detach().numpy()
                 spatial_action = np.random.choice(probs_detached, 1, p=probs_detached)
                 spatial_action = np.where(probs_detached == spatial_action)[0][0]
                 spatial_log_prob = spatial_log_probs[spatial_action]
@@ -119,7 +123,7 @@ for episode in range(Params["Episodes"]):
 
         entropies.append(-(log_probs * probs).sum())
         spatial_entropies.append(-(spatial_log_probs * spatial_probs).sum())
-        logs.append(torch.log(prob))
+        logs.append(torch.log(prob))  # don't take from log_probs because of composite of several probs for policy
         values.append(value)
         rewards.append(reward)
 
@@ -134,6 +138,6 @@ for episode in range(Params["Episodes"]):
             train(values, entropies, spatial_entropies, logs, rewards, obs, done)
             values, entropies, spatial_entropies, logs, rewards = [], [], [], [], []
 
-        train(values, entropies, spatial_entropies, logs, rewards, obs, done)
+    train(values, entropies, spatial_entropies, logs, rewards, obs, done)
 
 env.close()

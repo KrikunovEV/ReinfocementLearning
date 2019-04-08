@@ -1,30 +1,12 @@
 import torch
 import torch.nn as nn
+import numpy as np
 
-scale = 2
+a = [
+    torch.Tensor([2]).cuda(),
+    torch.Tensor([3]).cuda(),
+    torch.Tensor([4]).cuda()
+]
 
-
-# N 1 H W
-x = torch.LongTensor(
-    [[
-        [[1, 1],
-         [1, 0]],
-        [[2, 1],
-         [1, 0]],
-        [[2, 1],
-         [1, 0]],
-    ]]
-)
-
-y = torch.LongTensor(
-    [[
-        [[1, 1],
-         [1, 0]],
-        [[2, 1],
-         [1, 0]],
-    ]]
-)
-
-print(x.size(), y.size(), torch.cat((x,y), 1))
-
+print(np.mean([q.item() for q in a]))
 

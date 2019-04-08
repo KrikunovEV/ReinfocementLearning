@@ -1,6 +1,5 @@
 from pysc2.lib import actions as sc2_actions
 from pysc2.lib import features as sc2_features
-from pysc2.lib import static_data
 import numpy as np
 from visdom import Visdom
 from enum import Enum
@@ -8,11 +7,11 @@ from enum import Enum
 
 MY_FUNCTION_TYPE = [
     0,      # no op
-    2,      # select point
-    3,      # select rect
+    #2,      # select point
+    #3,      # select rect
     5,      # select unit
     7,      # select army
-    331,    # goto
+    331    # goto
     #6,      # select idle worker (F1)
     #11,     # build queue
     #42,     # build barracks
@@ -35,13 +34,14 @@ MY_UNIT_TYPE = [
 ]
 
 Params = {
-    "Episodes": 100000,
-    "Steps": 40,
+    "Episodes": 10000,
+    "Steps": 15,
     "Discount": 0.99,
-    "Entropy": 0.01,  # 0.001
+    "GradClip": 40,
+    "Entropy": 0.001,  # 0.001
     "GameSteps": 8,  # 180 APM
     "LR": 0.0001,
-    "FeatureSize": 64,
+    "FeatureSize": 32,
     "ScrPreprocNum": 5 + len(MY_UNIT_TYPE)+1 + 2,
     "MapPreprocNum": 5 + 2
 }
