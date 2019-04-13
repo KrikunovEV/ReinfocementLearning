@@ -8,12 +8,13 @@ from Model import FullyConv
 from Util import *
 
 import sys
-import numpy as np
-np.set_printoptions(threshold=sys.maxsize)
+from absl import flags
+FLAGS = flags.FLAGS
+FLAGS(sys.argv)
 
 
 env = sc2_env.SC2Env(
-    map_name="CollectMineralShards",
+    map_name="BuildMarines",  # CollectMineralShards
     step_mul=Params["GameSteps"],
     visualize=False,
     agent_interface_format=sc2_env.AgentInterfaceFormat(
@@ -25,6 +26,14 @@ env = sc2_env.SC2Env(
 model = FullyConv().cuda()
 Optimizer = optim.Adam(model.parameters(), lr=Params["LR"])
 DataMgr = VisdomWrap()
+
+
+def track_gradients():
+    params = list(model.parameters())
+    grads = torch.Tensor().cuda()
+    for param in params:
+        grads = torch.cat((grads, param.grad.detach().view(-1)))
+    DataMgr.send_grad_data(grads.mean().item(), grads.var().item())
 
 
 def train(values, entropies, spatial_entropies, logs, rewards, obs, done):
@@ -56,6 +65,7 @@ def train(values, entropies, spatial_entropies, logs, rewards, obs, done):
     nn.utils.clip_grad_norm_(model.parameters(), Params["GradClip"])
     Optimizer.step()
 
+    #track_gradients()
     DataMgr.send_data(True, value_loss.item(), policy_loss.item(),
                       np.mean([entropy.item() for entropy in entropies]),
                       np.mean([entropy.item() for entropy in spatial_entropies]), 0)
@@ -64,7 +74,7 @@ def train(values, entropies, spatial_entropies, logs, rewards, obs, done):
 for episode in range(Params["Episodes"]):
 
     if episode % 100 == 0 and episode != 0:
-        torch.save(model.state_dict(), 'models3/' + str(episode) + '.pt')
+        torch.save(model.state_dict(), 'models5/' + str(episode) + '.pt')
 
     for param_group in Optimizer.param_groups:
         param_group['lr'] = min(Params["LR"] * (1 - episode / Params["Episodes"]), param_group['lr'])
@@ -140,4 +150,5 @@ for episode in range(Params["Episodes"]):
 
     train(values, entropies, spatial_entropies, logs, rewards, obs, done)
 
+torch.save(model.state_dict(), 'models5/' + str(Params["Episodes"]) + '.pt')
 env.close()

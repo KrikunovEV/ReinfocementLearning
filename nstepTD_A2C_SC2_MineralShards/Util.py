@@ -6,18 +6,19 @@ from enum import Enum
 
 
 MY_FUNCTION_TYPE = [
-    0,      # no op
-    #2,      # select point
+    #0,      # no op
+    2,      # select point
     #3,      # select rect
-    5,      # select unit
-    7,      # select army
-    331    # goto
-    #6,      # select idle worker (F1)
-    #11,     # build queue
-    #42,     # build barracks
-    #268,    # gathering SCV
-    #477,    # train Marine
-    #490     # train SCV
+    #5,      # select unit
+    #7,      # select army (F2)
+    6,      # select idle worker (F1)
+    11,     # build queue
+    42,     # build barracks
+    91,     # build supply depot
+    268,    # gathering SCV
+    331,    # move
+    477,    # train Marine
+    490     # train SCV
 ]
 FUNCTION_TYPES = sc2_actions.FUNCTION_TYPES
 FunctionCount = len(MY_FUNCTION_TYPE)
@@ -25,23 +26,24 @@ FunctionCount = len(MY_FUNCTION_TYPE)
 FUNCTIONS = sc2_actions.FUNCTIONS
 
 MY_UNIT_TYPE = [
-    18,  # command center
-    21,  # barracks
-    45,  # SCV
-    48,  # marine
-    341, # mineral field
-    1680 # FAKE MINERAL
+    18,   # command center
+    19,   # supply depot
+    21,   # barracks
+    45,   # SCV
+    48,   # marine
+    341   # mineral field
+    #1680 # FAKE MINERAL
 ]
 
 Params = {
     "Episodes": 10000,
-    "Steps": 15,
+    "Steps": 100,
     "Discount": 0.99,
     "GradClip": 40,
     "Entropy": 0.001,  # 0.001
     "GameSteps": 8,  # 180 APM
     "LR": 0.0001,
-    "FeatureSize": 32,
+    "FeatureSize": 38,
     "ScrPreprocNum": 5 + len(MY_UNIT_TYPE)+1 + 2,
     "MapPreprocNum": 5 + 2
 }
@@ -76,6 +78,16 @@ class VisdomWrap:
         self.spatial_entropy_layout = dict(title="Spatial entropies", xaxis={'title': 'n-step iter'},
                                            yaxis={'title': ' spatial entropy'})
 
+        self.gradmean_layout = dict(title="Grad means", xaxis={'title': 'backward iter'}, yaxis={'title': 'mean'})
+        self.gradvar_layout = dict(title="Grad vars", xaxis={'title': 'backward iter'}, yaxis={'title': 'variance'})
+        self.GRADMEANS = []
+        self.GRADVARS = []
+        self.GRADMEANS_MEAN = []
+        self.GRADVARS_MEAN = []
+        self.gradmeans_sample = []
+        self.gradvars_sample = []
+        self.BACKWARDS = []
+
         self.NSTEPITER = []
         self.VALUELOSS = []
         self.VALUELOSS_MEAN = []
@@ -104,7 +116,7 @@ class VisdomWrap:
             self.entropy_sample.append(float(entropy))
             self.spatial_entropy_sample.append(float(spatial_entropy))
 
-            if len(self.valueloss_sample) == 2:
+            if len(self.valueloss_sample) == 5:
                 self.NSTEPITER.append(len(self.NSTEPITER) + 1)
                 self.VALUELOSS.append(np.mean(self.valueloss_sample))
                 self.POLICYLOSS.append(np.mean(self.policyloss_sample))
@@ -169,3 +181,32 @@ class VisdomWrap:
 
                 self.vis._send(
                     {'data': [trace_reward, trace_reward_mean], 'layout': self.reward_layout, 'win': 'rewardwin'})
+
+    def send_grad_data(self, mean, var):
+        self.gradmeans_sample.append(mean)
+        self.gradvars_sample.append(var)
+        if len(self.gradmeans_sample) == 5:
+            self.BACKWARDS.append(len(self.BACKWARDS) + 1)
+            self.GRADMEANS.append(np.mean(self.gradmeans_sample))
+            self.GRADVARS.append(np.mean(self.gradvars_sample))
+            self.gradmeans_sample = []
+            self.gradvars_sample = []
+
+            if len(self.BACKWARDS) % 10 == 0:
+                self.GRADMEANS_MEAN.append(np.mean(self.GRADMEANS[len(self.GRADMEANS) - 10:]))
+                self.GRADVARS_MEAN.append(np.mean(self.GRADVARS[len(self.GRADVARS) - 10:]))
+
+            trace_gradmean = dict(x=self.BACKWARDS, y=self.GRADMEANS, type='custom', mode="lines", name='mean')
+            trace_gradmean_mean = dict(x=self.BACKWARDS[::10], y=self.GRADMEANS_MEAN,
+                                     line={'color': 'red', 'width': 4}, type='custom', mode="lines",
+                                     name='mean mean')
+            trace_gradvar = dict(x=self.BACKWARDS, y=self.GRADVARS, type='custom', mode="lines", name='variance')
+            trace_gradvar_mean = dict(x=self.BACKWARDS[::10], y=self.GRADVARS_MEAN,
+                                       line={'color': 'red', 'width': 4}, type='custom', mode="lines",
+                                       name='mean variance')
+
+            self.vis._send(
+                {'data': [trace_gradmean, trace_gradmean_mean], 'layout': self.gradmean_layout, 'win': 'meandwin'})
+
+            self.vis._send(
+                {'data': [trace_gradvar, trace_gradvar_mean], 'layout': self.gradvar_layout, 'win': 'varwin'})

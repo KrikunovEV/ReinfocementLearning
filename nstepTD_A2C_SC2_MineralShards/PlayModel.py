@@ -1,82 +1,74 @@
 import torch
+import torch.nn.functional as functional
 from pysc2.env import sc2_env
 from Model import FullyConv
 
 from Util import *
 
+import sys
+from absl import flags
+FLAGS = flags.FLAGS
+FLAGS(sys.argv)
 
 env = sc2_env.SC2Env(
-    map_name = "CollectMineralShards",
-    step_mul = Hyperparam["GameSteps"],
-    visualize = False,
-    agent_interface_format = sc2_env.AgentInterfaceFormat(
-        feature_dimensions = sc2_env.Dimensions(
-        screen = Hyperparam["FeatureSize"],
-        minimap = Hyperparam["FeatureSize"]))
+    map_name="BuildMarines",
+    step_mul=Params["GameSteps"],
+    visualize=False,
+    agent_interface_format= sc2_env.AgentInterfaceFormat(
+        feature_dimensions=sc2_env.Dimensions(
+            screen=Params["FeatureSize"],
+            minimap=Params["FeatureSize"]))
 )
 
 
 model = FullyConv()
-model.load_state_dict(torch.load("models/1000.pt"))
+model.load_state_dict(torch.load("models5/300.pt"))
 model.eval()
 
-for episode in range(Hyperparam["Episodes"]):
+for episode in range(Params["Episodes"]):
 
     obs = env.reset()[0]
 
     while True:
 
-        screens_obs = []
-        for i, screen in enumerate(obs.observation["feature_screen"]):
-            if i in screen_ind:
-                screens_obs.append(screen)
-
-        minimaps_obs = []
-        for i, minimap in enumerate(obs.observation["feature_minimap"]):
-            if i in minimap_ind:
-                minimaps_obs.append(minimap)
-
-        spatial_logits, logits, value = model(screens_obs, minimaps_obs)
-
+        scr_features = [obs.observation["feature_screen"][i] for i in scr_indices]
+        map_features = [obs.observation["feature_minimap"][i] for i in map_indices]
+        flat_features = obs.observation["player"]
         action_mask = obs.observation["available_actions"]
-        #logits = logits[action_mask]
+
+        spatial_logits, logits, value = model(scr_features, map_features, flat_features)
+
+        actions_ids = [i for i, action in enumerate(MY_FUNCTION_TYPE) if action in action_mask]
+        logits = logits[actions_ids]
         spatial_logits = spatial_logits.flatten()
 
-        probs = torch.nn.functional.softmax(logits, dim=-1)
-        spatial_probs = torch.nn.functional.softmax(spatial_logits, dim=-1)
+        probs = functional.softmax(logits, dim=-1)
+        spatial_probs = functional.softmax(spatial_logits, dim=-1)
 
-        log_probs = torch.nn.functional.log_softmax(logits, dim=-1)
-        spatial_log_probs = torch.nn.functional.log_softmax(spatial_logits, dim=-1)
+        log_probs = functional.log_softmax(logits, dim=-1)
+        spatial_log_probs = functional.log_softmax(spatial_logits, dim=-1)
 
-        # action
-        probs_np = probs.detach().numpy()
-        action = np.random.choice(probs_np, 1, p=probs_np)
-        action = np.where(probs_np == action)[0][0]
+        probs_detached = probs.cpu().detach().numpy()
+        prob = np.random.choice(probs_detached, 1, p=probs_detached)
+        action_id = np.where(probs_detached == prob)[0][0]
+        action_id = MY_FUNCTION_TYPE[actions_ids[action_id]]  # to get real id
 
-        x, y = 0, 0
-        if action == 1:
-            probs_np = spatial_probs.detach().numpy()
-            spatial_action = np.random.choice(probs_np, 1, p=probs_np)
-            spatial_action = np.where(probs_np == spatial_action)[0][0]
-            spatial_log_prob = spatial_log_probs[spatial_action]
-            y = spatial_action // Hyperparam["FeatureSize"]
-            x = spatial_action % Hyperparam["FeatureSize"]
+        action_args = []
+        for arg in FUNCTIONS[action_id].args:
+            if len(arg.sizes) == 1:
+                action_args.append([0])
+            elif len(arg.sizes) > 1:
+                probs_detached = spatial_probs.cpu().detach().numpy()
+                spatial_action = np.random.choice(probs_detached, 1, p=probs_detached)
+                spatial_action = np.where(probs_detached == spatial_action)[0][0]
+                spatial_log_prob = spatial_log_probs[spatial_action]
+                y = spatial_action // Params["FeatureSize"]
+                x = spatial_action % Params["FeatureSize"]
+                action_args.append([x, y])
 
-        _SELECT_ARMY = FUNCTIONS.select_army.id
-        _NO_OP = FUNCTIONS.no_op.id
-        _MOVE = FUNCTIONS.Move_screen.id
-
-        # sc2_actions.FUNCTIONS.select_army.id
-        if action == 0 and (_NO_OP in action_mask):
-            obs = env.step(actions=[sc2_actions.FunctionCall(_NO_OP, [])])[0]
-        elif action == 1 and (_MOVE in action_mask):
-            obs = env.step(actions=[sc2_actions.FunctionCall(_MOVE, [[0], [x, y]])])[0]
-        else:
-            obs = env.step(actions=[sc2_actions.FunctionCall(_SELECT_ARMY, [[0]])])[0]
-
+        obs = env.step(actions=[sc2_actions.FunctionCall(action_id, action_args)])[0]
 
         if obs.step_type == 2:
             break
-
 
 env.close()
