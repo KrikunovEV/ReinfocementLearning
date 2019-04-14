@@ -1,7 +1,5 @@
 # ReinforcementLearning
 
-Here You can see the progress of my **Graduate work**.
-
 ### Starcraft 2
 1. The main [StarCraft II: A New Challenge for Reinforcement Learning](https://arxiv.org/pdf/1708.04782.pdf);
 2. API for Starcraft 2 - [PySC2](https://github.com/deepmind/pysc2);
@@ -27,7 +25,7 @@ Here You can see the progress of my **Graduate work**.
 pip install gym # for classic control
 pip install gym[atari] # Atari games
 pip install gym[all] # get all games
-pip install git+https://github.com/Kojoley/atari-py.git # get atari-py if needed
+pip install git+https://github.com/Kojoley/atari-py.git # get atari-py if necessary
 pip install pysc2
 ```
 
