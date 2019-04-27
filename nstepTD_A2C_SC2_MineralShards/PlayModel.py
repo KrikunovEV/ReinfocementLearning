@@ -14,15 +14,15 @@ env = sc2_env.SC2Env(
     map_name="BuildMarines",
     step_mul=Params["GameSteps"],
     visualize=False,
-    agent_interface_format= sc2_env.AgentInterfaceFormat(
+    agent_interface_format=sc2_env.AgentInterfaceFormat(
         feature_dimensions=sc2_env.Dimensions(
             screen=Params["FeatureSize"],
             minimap=Params["FeatureSize"]))
 )
 
 
-model = FullyConv()
-model.load_state_dict(torch.load("models5/300.pt"))
+model = FullyConv().cuda()
+model.load_state_dict(torch.load("models6/400.pt"))  # models5/200; model6/400(SCV) /1000(good)
 model.eval()
 
 for episode in range(Params["Episodes"]):

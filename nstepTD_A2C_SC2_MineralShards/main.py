@@ -74,7 +74,7 @@ def train(values, entropies, spatial_entropies, logs, rewards, obs, done):
 for episode in range(Params["Episodes"]):
 
     if episode % 100 == 0 and episode != 0:
-        torch.save(model.state_dict(), 'models5/' + str(episode) + '.pt')
+        torch.save(model.state_dict(), 'models6/' + str(episode) + '.pt')
 
     for param_group in Optimizer.param_groups:
         param_group['lr'] = min(Params["LR"] * (1 - episode / Params["Episodes"]), param_group['lr'])
@@ -150,5 +150,5 @@ for episode in range(Params["Episodes"]):
 
     train(values, entropies, spatial_entropies, logs, rewards, obs, done)
 
-torch.save(model.state_dict(), 'models5/' + str(Params["Episodes"]) + '.pt')
+torch.save(model.state_dict(), 'models6/' + str(Params["Episodes"]) + '.pt')
 env.close()

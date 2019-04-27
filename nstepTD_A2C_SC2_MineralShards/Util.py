@@ -4,6 +4,9 @@ import numpy as np
 from visdom import Visdom
 from enum import Enum
 
+FUNCTION_TYPES = sc2_actions.FUNCTION_TYPES
+FUNCTIONS = sc2_actions.FUNCTIONS
+
 
 MY_FUNCTION_TYPE = [
     #0,      # no op
@@ -20,10 +23,8 @@ MY_FUNCTION_TYPE = [
     477,    # train Marine
     490     # train SCV
 ]
-FUNCTION_TYPES = sc2_actions.FUNCTION_TYPES
 FunctionCount = len(MY_FUNCTION_TYPE)
 
-FUNCTIONS = sc2_actions.FUNCTIONS
 
 MY_UNIT_TYPE = [
     18,   # command center
@@ -35,15 +36,16 @@ MY_UNIT_TYPE = [
     #1680 # FAKE MINERAL
 ]
 
+
 Params = {
-    "Episodes": 10000,
-    "Steps": 100,
+    "Episodes": 1500,
+    "Steps": 500,
     "Discount": 0.99,
     "GradClip": 40,
     "Entropy": 0.001,  # 0.001
     "GameSteps": 8,  # 180 APM
-    "LR": 0.0001,
-    "FeatureSize": 38,
+    "LR": 0.00025,
+    "FeatureSize": 32,
     "ScrPreprocNum": 5 + len(MY_UNIT_TYPE)+1 + 2,
     "MapPreprocNum": 5 + 2
 }

@@ -9,7 +9,7 @@ class FullyConv(nn.Module):
         super(FullyConv, self).__init__()
 
         self.MapPreproc = nn.Conv2d(Params["MapPreprocNum"], FeatureMinimapCount, 1)
-        self.ScrPreproc = nn.Conv2d(Params["ScrPreprocNum"], FeatureScrCount - 2, 1) # -2 for SCALAR
+        self.ScrPreproc = nn.Conv2d(Params["ScrPreprocNum"], FeatureScrCount - 2, 1)  # -2 for SCALAR
 
         self.FlatNet = nn.Sequential(
             nn.Linear(11, Params["FeatureSize"]**2),
@@ -64,11 +64,11 @@ class FullyConv(nn.Module):
     def _preprocess(self, features, features_type):
 
         if features_type == Type.FLAT:
-            features = self.FlatNet(torch.Tensor(features)).view(1, 1, Params["FeatureSize"], Params["FeatureSize"])
+            features = self.FlatNet(torch.Tensor(features).cuda()).view(1, 1, Params["FeatureSize"], Params["FeatureSize"])
 
         elif features_type == Type.SCREEN:
-            categorical = torch.Tensor()
-            numerical = torch.Tensor()
+            categorical = torch.Tensor().cuda()
+            numerical = torch.Tensor().cuda()
 
             for i, feature in enumerate(features):
                 if SCREEN_FEATURES[i].type == CATEGORICAL:
@@ -81,23 +81,23 @@ class FullyConv(nn.Module):
                             feature[feature == unit_type] = j + 1
 
                     # N x 1 x H x W
-                    tmp = torch.LongTensor(feature).view(1, 1, Params["FeatureSize"], Params["FeatureSize"])
-                    one_hots = torch.Tensor(tmp.size(0), scale, tmp.size(2), tmp.size(3)).zero_()
+                    tmp = torch.LongTensor(feature).cuda().view(1, 1, Params["FeatureSize"], Params["FeatureSize"])
+                    one_hots = torch.Tensor(tmp.size(0), scale, tmp.size(2), tmp.size(3)).cuda().zero_()
                     one_hots = one_hots.scatter_(1, tmp.data, 1)
                     categorical = torch.cat((categorical, one_hots[0]))
                 else:
-                    numerical = torch.cat((numerical, torch.Tensor(feature).unsqueeze(0)))
+                    numerical = torch.cat((numerical, torch.Tensor(feature).cuda().unsqueeze(0)))
 
             categorical = self.ScrPreproc(categorical.unsqueeze(0))
             numerical = torch.log2(numerical + 1).unsqueeze(0)
             features = torch.cat((categorical, numerical), 1)
 
         else:
-            buffer = torch.Tensor()
+            buffer = torch.Tensor().cuda()
             for i, feature in enumerate(features):
                 # N x 1 x H x W
-                tmp = torch.LongTensor(feature).view(1, 1, Params["FeatureSize"], Params["FeatureSize"])
-                one_hots = torch.Tensor(tmp.size(0), MINIMAP_FEATURES[i].scale, tmp.size(2), tmp.size(3)).zero_()
+                tmp = torch.LongTensor(feature).cuda().view(1, 1, Params["FeatureSize"], Params["FeatureSize"])
+                one_hots = torch.Tensor(tmp.size(0), MINIMAP_FEATURES[i].scale, tmp.size(2), tmp.size(3)).cuda().zero_()
                 one_hots = one_hots.scatter_(1, tmp.data, 1)
                 buffer = torch.cat((buffer, one_hots[0]))
 
