@@ -1,10 +1,5 @@
-import torch
-import torch.nn as nn
-import numpy as np
+from Util import Global
 
-
-
-a = torch.Tensor([5, 6])
-b = torch.Tensor([1, 1 , 1, 1,1,1,1,1])
-print(torch.cat((a, b)).var())
-
+save_path = 'checkpoints_marines/'
+Global.load(save_path)
+Global.debug_print()

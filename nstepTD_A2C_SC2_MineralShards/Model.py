@@ -1,30 +1,33 @@
+from Util import Global
+
 import torch
 import torch.nn as nn
-from Util import *
+
+from numpy import array
 
 
-class FullyConv(nn.Module):
+class FullyConvModel(nn.Module):
 
     def __init__(self):
-        super(FullyConv, self).__init__()
+        super(FullyConvModel, self).__init__()
 
-        self.MapPreproc = nn.Conv2d(Params["MapPreprocNum"], FeatureMinimapCount, 1)
-        self.ScrPreproc = nn.Conv2d(Params["ScrPreprocNum"], FeatureScrCount - 2, 1)  # -2 for SCALAR
+        self.MapPreproc = nn.Conv2d(Global.Params["MapPreprocNum"], Global.FeatureMinimapCount, 1)
+        self.ScrPreproc = nn.Conv2d(Global.Params["ScrPreprocNum"], Global.FeatureScrCount, 1)
 
         self.FlatNet = nn.Sequential(
-            nn.Linear(11, Params["FeatureSize"]**2),
+            nn.Linear(11, Global.Params["FeatureSize"]**2),
             nn.Tanh()
         )
 
         self.MinimapNet = nn.Sequential(
-            nn.Conv2d(FeatureMinimapCount, 16, 5, padding=2),
+            nn.Conv2d(Global.FeatureMinimapCount, 16, 5, padding=2),
             nn.ReLU(),
             nn.Conv2d(16, 32, 3, padding=1),
             nn.ReLU()
         )
 
         self.ScreenNet = nn.Sequential(
-            nn.Conv2d(FeatureScrCount, 16, 5, padding=2),
+            nn.Conv2d(Global.FeatureScrCount, 16, 5, padding=2),
             nn.ReLU(),
             nn.Conv2d(16, 32, 3, padding=1),
             nn.ReLU()
@@ -34,18 +37,18 @@ class FullyConv(nn.Module):
 
         # features size**2, 32 filters, 2 from minimap and screen nets + from flat features
         self.LinearNet = nn.Sequential(
-            nn.Linear(Params["FeatureSize"]**2 * (32 * 2 + 1), 256),
+            nn.Linear(Global.Params["FeatureSize"]**2 * (32 * 2 + 1), 256),
             nn.ReLU()
         )
 
         self.Value = nn.Linear(256, 1)
-        self.Policy = nn.Linear(256, FunctionCount)
+        self.Policy = nn.Linear(256, Global.FunctionCount)
 
     def forward(self, scr_features, map_features, flat_features):
 
-        scr_features = self._preprocess(scr_features, Type.SCREEN)
-        map_features = self._preprocess(map_features, Type.MINIMAP)
-        flat_features = self._preprocess(flat_features, Type.FLAT)
+        scr_features = self._preprocess(scr_features, Global.Type.SCREEN)
+        map_features = self._preprocess(map_features, Global.Type.MINIMAP)
+        flat_features = self._preprocess(flat_features, Global.Type.FLAT)
 
         scr_features = self.ScreenNet(scr_features)
         map_features = self.MinimapNet(map_features)
@@ -63,25 +66,27 @@ class FullyConv(nn.Module):
 
     def _preprocess(self, features, features_type):
 
-        if features_type == Type.FLAT:
-            features = self.FlatNet(torch.Tensor(features).cuda()).view(1, 1, Params["FeatureSize"], Params["FeatureSize"])
+        if features_type == Global.Type.FLAT:
+            features = self.FlatNet(torch.Tensor(features).cuda()).view(1, 1, Global.Params["FeatureSize"],
+                                                                        Global.Params["FeatureSize"])
 
-        elif features_type == Type.SCREEN:
+        elif features_type == Global.Type.SCREEN:
             categorical = torch.Tensor().cuda()
             numerical = torch.Tensor().cuda()
 
             for i, feature in enumerate(features):
-                if SCREEN_FEATURES[i].type == CATEGORICAL:
+                if Global.SCREEN_FEATURES[i].type == Global.CATEGORICAL:
 
-                    scale = SCREEN_FEATURES[i].scale
+                    scale = Global.SCREEN_FEATURES[i].scale
                     if i == 1:
-                        scale = len(MY_UNIT_TYPE) + 1
-                        feature = np.array(feature)
-                        for j, unit_type in enumerate(MY_UNIT_TYPE):
+                        scale = Global.UnitCount + 1
+                        feature = array(feature)
+                        for j, unit_type in enumerate(Global.MY_UNIT_TYPE):
                             feature[feature == unit_type] = j + 1
 
                     # N x 1 x H x W
-                    tmp = torch.LongTensor(feature).cuda().view(1, 1, Params["FeatureSize"], Params["FeatureSize"])
+                    tmp = torch.LongTensor(feature).cuda().view(1, 1, Global.Params["FeatureSize"],
+                                                                Global.Params["FeatureSize"])
                     one_hots = torch.Tensor(tmp.size(0), scale, tmp.size(2), tmp.size(3)).cuda().zero_()
                     one_hots = one_hots.scatter_(1, tmp.data, 1)
                     categorical = torch.cat((categorical, one_hots[0]))
@@ -96,8 +101,10 @@ class FullyConv(nn.Module):
             buffer = torch.Tensor().cuda()
             for i, feature in enumerate(features):
                 # N x 1 x H x W
-                tmp = torch.LongTensor(feature).cuda().view(1, 1, Params["FeatureSize"], Params["FeatureSize"])
-                one_hots = torch.Tensor(tmp.size(0), MINIMAP_FEATURES[i].scale, tmp.size(2), tmp.size(3)).cuda().zero_()
+                tmp = torch.LongTensor(feature).cuda().view(1, 1, Global.Params["FeatureSize"],
+                                                            Global.Params["FeatureSize"])
+                one_hots = torch.Tensor(tmp.size(0), Global.MINIMAP_FEATURES[i].scale, tmp.size(2),
+                                        tmp.size(3)).cuda().zero_()
                 one_hots = one_hots.scatter_(1, tmp.data, 1)
                 buffer = torch.cat((buffer, one_hots[0]))
 

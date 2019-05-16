@@ -1,71 +1,131 @@
 from pysc2.lib import actions as sc2_actions
 from pysc2.lib import features as sc2_features
-import numpy as np
+
+from numpy import mean
 from visdom import Visdom
 from enum import Enum
 
-FUNCTION_TYPES = sc2_actions.FUNCTION_TYPES
-FUNCTIONS = sc2_actions.FUNCTIONS
+import torch
 
 
-MY_FUNCTION_TYPE = [
-    #0,      # no op
-    2,      # select point
-    #3,      # select rect
-    #5,      # select unit
-    #7,      # select army (F2)
-    6,      # select idle worker (F1)
-    11,     # build queue
-    42,     # build barracks
-    91,     # build supply depot
-    268,    # gathering SCV
-    331,    # move
-    477,    # train Marine
-    490     # train SCV
-]
-FunctionCount = len(MY_FUNCTION_TYPE)
+class Global:
 
+    MY_FUNCTION_TYPE = [
+        0,      # no op
+        2,      # select point
+        3,      # select rect
+        7,      # select army (F2)
+        6,      # select idle worker (F1)
+        11,     # build queue
+        42,     # build barracks
+        91,     # build supply depot
+        268,    # gathering SCV
+        331,    # move
+        477,    # train Marine
+        490     # train SCV
+    ]
+    FunctionCount = len(MY_FUNCTION_TYPE)
 
-MY_UNIT_TYPE = [
-    18,   # command center
-    19,   # supply depot
-    21,   # barracks
-    45,   # SCV
-    48,   # marine
-    341   # mineral field
-    #1680 # FAKE MINERAL
-]
+    MY_UNIT_TYPE = [
+        18,   # command center
+        19,   # supply depot
+        21,   # barracks
+        45,   # SCV
+        48,   # marine
+        341   # mineral field
+    ]
+    UnitCount = len(MY_UNIT_TYPE)
 
+    Params = {
+        "Episodes":  1000,
+        "Steps":     600,
+        "MaxSteps":  1800,  # 15 min (600 steps = 5 min) since GameSteps is 8
+        "Discount":  0.99,
+        "GradClip":  40,
+        "Entropy":   0.001,  # 0.001
+        "GameSteps": 8,  # 180 APM
+        "LR":        0.0001,
+        "FeatureSize":   32,
+        "ScrPreprocNum": 5 + UnitCount+1 + 2,
+        "MapPreprocNum": 5 + 2
+    }
 
-Params = {
-    "Episodes": 1500,
-    "Steps": 500,
-    "Discount": 0.99,
-    "GradClip": 40,
-    "Entropy": 0.001,  # 0.001
-    "GameSteps": 8,  # 180 APM
-    "LR": 0.00025,
-    "FeatureSize": 32,
-    "ScrPreprocNum": 5 + len(MY_UNIT_TYPE)+1 + 2,
-    "MapPreprocNum": 5 + 2
-}
+    scr_indices = [5, 6, 7, 14, 15]
+    map_indices = [5, 6]
+    FeatureScrFlatCount = 2
+    FeatureScrCount = len(scr_indices) - FeatureScrFlatCount
+    FeatureMinimapCount = len(map_indices)
 
+    class Type(Enum):
+        SCREEN = 0
+        MINIMAP = 1
+        FLAT = 2
 
-class Type(Enum):
-    SCREEN = 0
-    MINIMAP = 1
-    FLAT = 2
+    # FUNCTION_TYPES = sc2_actions.FUNCTION_TYPES
+    FUNCTIONS = sc2_actions.FUNCTIONS
+    SCREEN_FEATURES = [sc2_features.SCREEN_FEATURES[i] for i in scr_indices]
+    MINIMAP_FEATURES = [sc2_features.MINIMAP_FEATURES[i] for i in map_indices]
+    CATEGORICAL = sc2_features.FeatureType.CATEGORICAL
 
+    @staticmethod
+    def save(save_path):
+        state = {
+            'func_type': Global.MY_FUNCTION_TYPE,
+            'unit_type': Global.MY_UNIT_TYPE,
+            'params': Global.Params,
+            'scr_flat_count': Global.FeatureScrFlatCount,
+            'scr_ind': Global.scr_indices,
+            'map_ind': Global.map_indices,
+        }
 
-scr_indices = [5, 6, 7, 14, 15]
-map_indices = [5, 6]
-FeatureScrCount = len(scr_indices)
-FeatureMinimapCount = len(map_indices)
+        torch.save(state, save_path + 'state.pt')
 
+    @staticmethod
+    def load(save_path):
+        state = torch.load(save_path + 'state.pt')
 
-SCREEN_FEATURES = [sc2_features.SCREEN_FEATURES[i] for i in scr_indices]
-MINIMAP_FEATURES = [sc2_features.MINIMAP_FEATURES[i] for i in map_indices]
-CATEGORICAL = sc2_features.FeatureType.CATEGORICAL
+        Global.MY_FUNCTION_TYPE = state['func_type']
+        Global.FunctionCount = len(Global.MY_FUNCTION_TYPE)
+
+        Global.MY_UNIT_TYPE = state['unit_type']
+        Global.UnitCount = len(Global.MY_UNIT_TYPE)
+
+        Global.Params = state['params']
+
+        Global.FeatureScrFlatCount = state['scr_flat_count']
+
+        Global.scr_indices = state['scr_ind']
+        Global.FeatureScrCount = len(Global.scr_indices) - Global.FeatureScrFlatCount
+        Global.SCREEN_FEATURES = [sc2_features.SCREEN_FEATURES[i] for i in Global.scr_indices]
+
+        Global.map_indices = state['map_ind']
+        Global.FeatureMinimapCount = len(Global.map_indices)
+        Global.MINIMAP_FEATURES = [sc2_features.MINIMAP_FEATURES[i] for i in Global.map_indices]
+
+    @staticmethod
+    def debug_print():
+        print('Functions ids:')
+        print(Global.MY_FUNCTION_TYPE)
+        print('Amount:', Global.FunctionCount)
+        print()
+        print('Units ids:')
+        print(Global.MY_UNIT_TYPE)
+        print('Amount:', Global.UnitCount)
+        print()
+        print('Params:')
+        print(Global.Params)
+        print()
+        print('Screen features ids:')
+        print(Global.scr_indices)
+        print('Scalar amount:', Global.FeatureScrFlatCount, '; Categorical amount:', Global.FeatureScrCount)
+        print('Features:')
+        print(Global.SCREEN_FEATURES)
+        print()
+        print('Minimap features ids:')
+        print(Global.map_indices)
+        print('Categorical amount:', Global.FeatureMinimapCount)
+        print('Features:')
+        print(Global.MINIMAP_FEATURES)
 
 
 class VisdomWrap:
@@ -79,16 +139,6 @@ class VisdomWrap:
         self.entropy_layout = dict(title="Entropies", xaxis={'title': 'n-step iter'}, yaxis={'title': 'entropy'})
         self.spatial_entropy_layout = dict(title="Spatial entropies", xaxis={'title': 'n-step iter'},
                                            yaxis={'title': ' spatial entropy'})
-
-        self.gradmean_layout = dict(title="Grad means", xaxis={'title': 'backward iter'}, yaxis={'title': 'mean'})
-        self.gradvar_layout = dict(title="Grad vars", xaxis={'title': 'backward iter'}, yaxis={'title': 'variance'})
-        self.GRADMEANS = []
-        self.GRADVARS = []
-        self.GRADMEANS_MEAN = []
-        self.GRADVARS_MEAN = []
-        self.gradmeans_sample = []
-        self.gradvars_sample = []
-        self.BACKWARDS = []
 
         self.NSTEPITER = []
         self.VALUELOSS = []
@@ -109,6 +159,26 @@ class VisdomWrap:
         self.REWARDS_MEAN = []
         self.reward_sample = []
 
+    def get_data(self):
+        return self.VALUELOSS, self.VALUELOSS_MEAN, self.POLICYLOSS, self.POLICYLOSS_MEAN,\
+               self.ENTROPY, self.ENTROPY_MEAN, self.SPATIALENTROPY, self.SPATIALENTROPY_MEAN,\
+               self.REWARDS, self.REWARDS_MEAN, self.EPISODES, self.NSTEPITER
+
+    def set_data(self, VALUELOSS, VALUELOSS_MEAN, POLICYLOSS, POLICYLOSS_MEAN, ENTROPY, ENTROPY_MEAN,
+                 SPATIALENTROPY, SPATIALENTROPY_MEAN, REWARDS, REWARDS_MEAN, EPISODES, NSTEPITER):
+        self.VALUELOSS = VALUELOSS
+        self.VALUELOSS_MEAN = VALUELOSS_MEAN
+        self.POLICYLOSS = POLICYLOSS
+        self.POLICYLOSS_MEAN = POLICYLOSS_MEAN
+        self.ENTROPY = ENTROPY
+        self.ENTROPY_MEAN = ENTROPY_MEAN
+        self.SPATIALENTROPY = SPATIALENTROPY
+        self.SPATIALENTROPY_MEAN = SPATIALENTROPY_MEAN
+        self.REWARDS = REWARDS
+        self.REWARDS_MEAN = REWARDS_MEAN
+        self.EPISODES = EPISODES
+        self.NSTEPITER = NSTEPITER
+
     def send_data(self, is_nstep, value_loss, policy_loss, entropy, spatial_entropy, reward):
 
         if is_nstep:
@@ -118,12 +188,12 @@ class VisdomWrap:
             self.entropy_sample.append(float(entropy))
             self.spatial_entropy_sample.append(float(spatial_entropy))
 
-            if len(self.valueloss_sample) == 5:
-                self.NSTEPITER.append(len(self.NSTEPITER) + 1)
-                self.VALUELOSS.append(np.mean(self.valueloss_sample))
-                self.POLICYLOSS.append(np.mean(self.policyloss_sample))
-                self.ENTROPY.append(np.mean(self.entropy_sample))
-                self.SPATIALENTROPY.append(np.mean(self.spatial_entropy_sample))
+            if len(self.valueloss_sample) == 10:
+                self.NSTEPITER.append(self.NSTEPITER[-1] + 10)
+                self.VALUELOSS.append(mean(self.valueloss_sample))
+                self.POLICYLOSS.append(mean(self.policyloss_sample))
+                self.ENTROPY.append(mean(self.entropy_sample))
+                self.SPATIALENTROPY.append(mean(self.spatial_entropy_sample))
 
                 self.valueloss_sample = []
                 self.policyloss_sample = []
@@ -131,10 +201,10 @@ class VisdomWrap:
                 self.spatial_entropy_sample = []
 
                 if len(self.NSTEPITER) % 10 == 0:
-                    self.VALUELOSS_MEAN.append(np.mean(self.VALUELOSS[len(self.VALUELOSS) - 10:]))
-                    self.POLICYLOSS_MEAN.append(np.mean(self.POLICYLOSS[len(self.POLICYLOSS) - 10:]))
-                    self.ENTROPY_MEAN.append(np.mean(self.ENTROPY[len(self.ENTROPY) - 10:]))
-                    self.SPATIALENTROPY_MEAN.append(np.mean(self.SPATIALENTROPY[len(self.SPATIALENTROPY) - 10:]))
+                    self.VALUELOSS_MEAN.append(mean(self.VALUELOSS[len(self.VALUELOSS) - 10:]))
+                    self.POLICYLOSS_MEAN.append(mean(self.POLICYLOSS[len(self.POLICYLOSS) - 10:]))
+                    self.ENTROPY_MEAN.append(mean(self.ENTROPY[len(self.ENTROPY) - 10:]))
+                    self.SPATIALENTROPY_MEAN.append(mean(self.SPATIALENTROPY[len(self.SPATIALENTROPY) - 10:]))
 
                 trace_value = dict(x=self.NSTEPITER, y=self.VALUELOSS, type='custom', mode="lines", name='loss')
                 trace_policy = dict(x=self.NSTEPITER, y=self.POLICYLOSS, type='custom', mode="lines", name='loss')
@@ -168,13 +238,13 @@ class VisdomWrap:
         else:
 
             self.reward_sample.append(reward)
-            if len(self.reward_sample) == 1:
-                self.EPISODES.append(len(self.EPISODES) + 1)
-                self.REWARDS.append(np.mean(self.reward_sample))
+            if len(self.reward_sample) == 5:
+                self.EPISODES.append(self.EPISODES[-1] + 5)
+                self.REWARDS.append(mean(self.reward_sample))
                 self.reward_sample = []
 
                 if len(self.EPISODES) % 10 == 0:
-                    self.REWARDS_MEAN.append(np.mean(self.REWARDS[len(self.REWARDS) - 10:]))
+                    self.REWARDS_MEAN.append(mean(self.REWARDS[len(self.REWARDS) - 10:]))
 
                 trace_reward = dict(x=self.EPISODES, y=self.REWARDS, type='custom', mode="lines", name='reward')
                 trace_reward_mean = dict(x=self.EPISODES[::10], y=self.REWARDS_MEAN,
@@ -184,31 +254,32 @@ class VisdomWrap:
                 self.vis._send(
                     {'data': [trace_reward, trace_reward_mean], 'layout': self.reward_layout, 'win': 'rewardwin'})
 
-    def send_grad_data(self, mean, var):
-        self.gradmeans_sample.append(mean)
-        self.gradvars_sample.append(var)
-        if len(self.gradmeans_sample) == 5:
-            self.BACKWARDS.append(len(self.BACKWARDS) + 1)
-            self.GRADMEANS.append(np.mean(self.gradmeans_sample))
-            self.GRADVARS.append(np.mean(self.gradvars_sample))
-            self.gradmeans_sample = []
-            self.gradvars_sample = []
 
-            if len(self.BACKWARDS) % 10 == 0:
-                self.GRADMEANS_MEAN.append(np.mean(self.GRADMEANS[len(self.GRADMEANS) - 10:]))
-                self.GRADVARS_MEAN.append(np.mean(self.GRADVARS[len(self.GRADVARS) - 10:]))
+'''
+FUNCTIONS:
+0,      # no op
+2,      # select point
+3,      # select rect
+5,      # select unit
+7,      # select army (F2)
+6,      # select idle worker (F1)
+11,     # build queue
+42,     # build barracks
+91,     # build supply depot
+268,    # gathering SCV
+331,    # move
+477,    # train Marine
+490     # train SCV
 
-            trace_gradmean = dict(x=self.BACKWARDS, y=self.GRADMEANS, type='custom', mode="lines", name='mean')
-            trace_gradmean_mean = dict(x=self.BACKWARDS[::10], y=self.GRADMEANS_MEAN,
-                                     line={'color': 'red', 'width': 4}, type='custom', mode="lines",
-                                     name='mean mean')
-            trace_gradvar = dict(x=self.BACKWARDS, y=self.GRADVARS, type='custom', mode="lines", name='variance')
-            trace_gradvar_mean = dict(x=self.BACKWARDS[::10], y=self.GRADVARS_MEAN,
-                                       line={'color': 'red', 'width': 4}, type='custom', mode="lines",
-                                       name='mean variance')
 
-            self.vis._send(
-                {'data': [trace_gradmean, trace_gradmean_mean], 'layout': self.gradmean_layout, 'win': 'meandwin'})
+UNITS:
+18,   # command center
+19,   # supply depot
+21,   # barracks
+45,   # SCV
+48,   # marine
+341   # mineral field
+1680  # FAKE MINERAL
 
-            self.vis._send(
-                {'data': [trace_gradvar, trace_gradvar_mean], 'layout': self.gradvar_layout, 'win': 'varwin'})
+
+'''
