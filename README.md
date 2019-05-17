@@ -11,6 +11,7 @@
 3. [Advantage Actor-Critic](https://hackernoon.com/intuitive-rl-intro-to-advantage-actor-critic-a2c-4ff545978752) in pictures;
 4. [Space Invaders](https://nihit.github.io/resources/spaceinvaders.pdf) with DQN;
 5. [Frame skipping](http://nn.cs.utexas.edu/downloads/papers/braylan.aaai15.pdf)
+6. [Stop reward clipping !](https://papers.nips.cc/paper/6076-learning-values-across-many-orders-of-magnitude.pdf)
 
 ### Can be interesting:
 1. VIN [Value Iteration Network](http://papers.nips.cc/paper/6046-value-iteration-networks.pdf);
