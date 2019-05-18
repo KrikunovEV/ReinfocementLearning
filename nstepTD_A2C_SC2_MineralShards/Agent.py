@@ -17,7 +17,7 @@ class Agent:
         self.DataMgr = VisdomWrap()
 
         self.Model = FullyConvModel().cuda()
-        self.Optim = optim.RMSprop(self.Model.parameters(), lr=Global.Params["LR"], alpha=0.9)
+        self.Optim = optim.RMSprop(self.Model.parameters(), lr=Global.Params["LR"])
         if episode_load != 0:
             self._load_agent_state(episode_load)
 
@@ -32,7 +32,7 @@ class Agent:
         #    param_group['lr'] = min(Params["LR"] * (1 - episode / Params["Episodes"]), param_group['lr'])
 
     def make_decision(self, scr_features, map_features, flat_features, action_mask):
-        spatial_logits, logits, value = self.Model(scr_features, map_features, flat_features, action_mask)
+        spatial_logits, logits, value = self.Model(scr_features, map_features, flat_features)
 
         actions_ids = [i for i, action in enumerate(Global.MY_FUNCTION_TYPE) if action in action_mask]
         logits = logits[actions_ids]
@@ -85,15 +85,19 @@ class Agent:
             _, _, G = self.Model(scr_features, map_features, flat_features)
             G = G.detach()
 
+        discounted = []
+        for i in reversed(range(len(self.rewards))):
+            G = self.rewards[i] + Global.Params["Discount"] * G
+            discounted.append(G)
+
+        advantages = (discounted - np.mean(discounted)) / np.std(discounted) - self.values
+
         value_loss = 0
         policy_loss = 0
 
         for i in reversed(range(len(self.rewards))):
-            G = self.rewards[i] + Global.Params["Discount"] * G
-            advantage = G - self.values[i]
-
-            value_loss = value_loss + 0.5 * advantage.pow(2)
-            policy_loss = policy_loss - (advantage.detach() * self.logs[i] +
+            value_loss = value_loss + 0.5 * advantages[i].pow(2)
+            policy_loss = policy_loss - (advantages[i].detach() * self.logs[i] +
                                          Global.Params["Entropy"] * (self.entropies[i] + self.spatial_entropies[i]))
 
         loss = policy_loss + 0.5 * value_loss

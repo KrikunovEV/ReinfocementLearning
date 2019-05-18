@@ -11,15 +11,15 @@ import torch
 class Global:
 
     MY_FUNCTION_TYPE = [
-        0,      # no op
+    #    0,      # no op
         2,      # select point
-        3,      # select rect
-        7,      # select army (F2)
+    #    3,      # select rect
+    #    7,      # select army (F2)
         6,      # select idle worker (F1)
         11,     # build queue
         42,     # build barracks
         91,     # build supply depot
-        268,    # gathering SCV
+        264,    # gathering SCV (268)
         331,    # move
         477,    # train Marine
         490     # train SCV
@@ -38,7 +38,7 @@ class Global:
 
     Params = {
         "Episodes":  1000,
-        "Steps":     600,
+        "Steps":     450,
         "MaxSteps":  1800,  # 15 min (600 steps = 5 min) since GameSteps is 8
         "Discount":  0.99,
         "GradClip":  40,
@@ -118,14 +118,10 @@ class Global:
         print('Screen features ids:')
         print(Global.scr_indices)
         print('Scalar amount:', Global.FeatureScrFlatCount, '; Categorical amount:', Global.FeatureScrCount)
-        print('Features:')
-        print(Global.SCREEN_FEATURES)
         print()
         print('Minimap features ids:')
         print(Global.map_indices)
         print('Categorical amount:', Global.FeatureMinimapCount)
-        print('Features:')
-        print(Global.MINIMAP_FEATURES)
 
 
 class VisdomWrap:
@@ -189,7 +185,7 @@ class VisdomWrap:
             self.spatial_entropy_sample.append(float(spatial_entropy))
 
             if len(self.valueloss_sample) == 10:
-                self.NSTEPITER.append(self.NSTEPITER[-1] + 10)
+                self.NSTEPITER.append(len(self.NSTEPITER) * 10)
                 self.VALUELOSS.append(mean(self.valueloss_sample))
                 self.POLICYLOSS.append(mean(self.policyloss_sample))
                 self.ENTROPY.append(mean(self.entropy_sample))
@@ -212,16 +208,16 @@ class VisdomWrap:
                 trace_spatial_entropy = dict(x=self.NSTEPITER, y=self.SPATIALENTROPY, type='custom', mode="lines",
                                              name='spatial entropy')
 
-                trace_value_mean = dict(x=self.NSTEPITER[::10], y=self.VALUELOSS_MEAN,
+                trace_value_mean = dict(x=[x+45 for x in self.NSTEPITER[::10]], y=self.VALUELOSS_MEAN,
                                         line={'color': 'red', 'width': 3}, type='custom', mode="lines",
                                         name='mean loss')
-                trace_policy_mean = dict(x=self.NSTEPITER[::10], y=self.POLICYLOSS_MEAN,
+                trace_policy_mean = dict(x=[x+45 for x in self.NSTEPITER[::10]], y=self.POLICYLOSS_MEAN,
                                          line={'color': 'red', 'width': 3}, type='custom', mode="lines",
                                          name='mean loss')
-                trace_entropy_mean = dict(x=self.NSTEPITER[::10], y=self.ENTROPY_MEAN,
+                trace_entropy_mean = dict(x=[x+45 for x in self.NSTEPITER[::10]], y=self.ENTROPY_MEAN,
                                           line={'color': 'red', 'width': 3}, type='custom', mode="lines",
                                           name='mean entropy')
-                trace_spatial_entropy_mean = dict(x=self.NSTEPITER[::10], y=self.SPATIALENTROPY_MEAN,
+                trace_spatial_entropy_mean = dict(x=[x+45 for x in self.NSTEPITER[::10]], y=self.SPATIALENTROPY_MEAN,
                                                   line={'color': 'red', 'width': 3}, type='custom', mode="lines",
                                                   name='mean spatial entropy')
 
@@ -239,7 +235,7 @@ class VisdomWrap:
 
             self.reward_sample.append(reward)
             if len(self.reward_sample) == 5:
-                self.EPISODES.append(self.EPISODES[-1] + 5)
+                self.EPISODES.append(len(self.EPISODES) * 5)
                 self.REWARDS.append(mean(self.reward_sample))
                 self.reward_sample = []
 
@@ -247,7 +243,7 @@ class VisdomWrap:
                     self.REWARDS_MEAN.append(mean(self.REWARDS[len(self.REWARDS) - 10:]))
 
                 trace_reward = dict(x=self.EPISODES, y=self.REWARDS, type='custom', mode="lines", name='reward')
-                trace_reward_mean = dict(x=self.EPISODES[::10], y=self.REWARDS_MEAN,
+                trace_reward_mean = dict(x=[x+10 for x in self.EPISODES[::10]], y=self.REWARDS_MEAN,
                                          line={'color': 'red', 'width': 4}, type='custom', mode="lines",
                                          name='mean reward')
 

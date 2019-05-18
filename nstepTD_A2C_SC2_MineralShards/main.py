@@ -12,12 +12,13 @@ FLAGS = flags.FLAGS
 FLAGS(sys.argv)
 
 
-save_path = 'checkpoints_marines/'
+save_path = 'checkpoints_marines_2/'
 episode_load = 0
 if episode_load == 0:
     Global.save(save_path)
 else:
     Global.load(save_path)
+Global.debug_print()
 
 
 env = sc2_env.SC2Env(
@@ -33,14 +34,18 @@ env = sc2_env.SC2Env(
 
 agent = Agent(episode_load, save_path)
 
-
-for episode in range(episode_load, Global.Params["Episodes"]):
+episode = episode_load
+while episode != Global.Params["Episodes"]:
 
     episode_reward = 0
     step = 0
     done = False
     obs = env.reset()[0]
     agent.reset()
+
+    action_mask = obs.observation["available_actions"]
+    if 6 in action_mask:
+        continue
 
     while not done:
 
@@ -52,7 +57,7 @@ for episode in range(episode_load, Global.Params["Episodes"]):
         action_id, action_args = agent.make_decision(scr_features, map_features, flat_features, action_mask)
         obs = env.step(actions=[sc2_actions.FunctionCall(action_id, action_args)])[0]
 
-        agent.get_reward(clip(obs.reward, -1, 1))
+        agent.get_reward(obs.reward)  # clip(obs.reward, -1, 1)
 
         done = (obs.step_type == StepType.LAST)
 
@@ -67,6 +72,8 @@ for episode in range(episode_load, Global.Params["Episodes"]):
             agent.train(obs, done)  # n-step update
 
     if (episode + 1) % 50 == 0:
-        agent.save_agent_state(episode)
+        agent.save_agent_state(episode + 1)
+
+    episode += 1
 
 env.close()

@@ -8,19 +8,35 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import sys
+from absl import flags
+FLAGS = flags.FLAGS
+FLAGS(sys.argv)
 np.set_printoptions(threshold=sys.maxsize)
 
 env = sc2_env.SC2Env(
-    map_name="CollectMineralShards",
+    map_name="BuildMarines",
     step_mul=1,
     visualize=False,
     agent_interface_format=sc2_env.AgentInterfaceFormat(
         feature_dimensions=sc2_env.Dimensions(
-        screen=64,
-        minimap=64))
+            screen=64,
+            minimap=64))
 )
 
-obss = env.reset()[0] # num agent
+obs = env.reset()[0]  # num agent
+#print(obs.observation)
+#obs = env.step(actions=[sc2_actions.FunctionCall(6, [[0]])])[0]
+#print(obs.observation)
+
+action_mask = obs.observation["available_actions"]
+if 6 not in action_mask:
+    obs = env.reset()[0]  # num agent
+
+for i in range(0, 100000000):
+    obs = env.step(actions=[sc2_actions.FunctionCall(0, [])])[0]
+
+    if obs.step_type == 2:
+        break
 '''
 #print(obss)
 # 17
@@ -84,13 +100,6 @@ _NO_OP = actions.FUNCTIONS.no_op.id
 _MOVE = actions.FUNCTIONS.Move_screen.id
 '''
 
-new_obs = env.step(actions=[sc2_actions.FunctionCall(7, [[0]])])[0]
-Actions = new_obs.observation["available_actions"]
-print(Actions)
-#if _MOVE not in Actions:
-#    new_obs = env.step(actions=[sc2_actions.FunctionCall(_SELECT_ARMY, [[0]])])
-#else:
-#    new_obs = env.step(actions=[sc2_actions.FunctionCall(_NO_OP, []) ])
 '''
 env.send_chat_messages("Hey")
 for i in range(0,100000000):

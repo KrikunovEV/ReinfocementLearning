@@ -1,5 +1,16 @@
-from Util import Global
+import numpy as np
 
-save_path = 'checkpoints_marines/'
-Global.load(save_path)
-Global.debug_print()
+rewards = [1, 0, 500, 0, 9, 10, 1000]
+
+discounted = []
+G = 0
+for i in reversed(range(len(rewards))):
+    G = rewards[i] + 0.99 * G
+    discounted.append(G)
+
+print(np.vstack(discounted))
+
+discounted = (discounted - np.mean(discounted)) / np.std(discounted)
+
+print()
+print(np.vstack(discounted))

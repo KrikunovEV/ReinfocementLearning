@@ -27,7 +27,7 @@ class FullyConvModel(nn.Module):
         )
 
         self.ScreenNet = nn.Sequential(
-            nn.Conv2d(Global.FeatureScrCount, 16, 5, padding=2),
+            nn.Conv2d(Global.FeatureScrCount + Global.FeatureScrFlatCount, 16, 5, padding=2),
             nn.ReLU(),
             nn.Conv2d(16, 32, 3, padding=1),
             nn.ReLU()
