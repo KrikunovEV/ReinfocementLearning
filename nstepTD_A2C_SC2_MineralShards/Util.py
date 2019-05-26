@@ -11,16 +11,16 @@ import torch
 class Global:
 
     MY_FUNCTION_TYPE = [
-    #    0,      # no op
+        #0,      # no op
         2,      # select point
-    #    3,      # select rect
-    #    7,      # select army (F2)
+        #3,      # select rect
+        #7,      # select army (F2)
         6,      # select idle worker (F1)
         11,     # build queue
         42,     # build barracks
         91,     # build supply depot
-        264,    # gathering SCV (268)
-        331,    # move
+        264,    # gathering SCV
+        #331,    # move
         477,    # train Marine
         490     # train SCV
     ]
@@ -38,13 +38,13 @@ class Global:
 
     Params = {
         "Episodes":  1000,
-        "Steps":     450,
+        "Steps":     500,  # 560 steps = 1/3 of 14min
         "MaxSteps":  1800,  # 15 min (600 steps = 5 min) since GameSteps is 8
         "Discount":  0.99,
         "GradClip":  40,
         "Entropy":   0.001,  # 0.001
         "GameSteps": 8,  # 180 APM
-        "LR":        0.0001,
+        "LR":        0.0002,
         "FeatureSize":   32,
         "ScrPreprocNum": 5 + UnitCount+1 + 2,
         "MapPreprocNum": 5 + 2
@@ -61,7 +61,6 @@ class Global:
         MINIMAP = 1
         FLAT = 2
 
-    # FUNCTION_TYPES = sc2_actions.FUNCTION_TYPES
     FUNCTIONS = sc2_actions.FUNCTIONS
     SCREEN_FEATURES = [sc2_features.SCREEN_FEATURES[i] for i in scr_indices]
     MINIMAP_FEATURES = [sc2_features.MINIMAP_FEATURES[i] for i in map_indices]
@@ -130,13 +129,13 @@ class VisdomWrap:
         self.vis = Visdom()
 
         self.reward_layout = dict(title="Episode rewards", xaxis={'title': 'episode'}, yaxis={'title': 'reward'})
-        self.policy_layout = dict(title="Policy loss", xaxis={'title': 'n-step iter'}, yaxis={'title': 'loss'})
-        self.value_layout = dict(title="Value loss", xaxis={'title': 'n-step iter'}, yaxis={'title': 'loss'})
-        self.entropy_layout = dict(title="Entropies", xaxis={'title': 'n-step iter'}, yaxis={'title': 'entropy'})
-        self.spatial_entropy_layout = dict(title="Spatial entropies", xaxis={'title': 'n-step iter'},
-                                           yaxis={'title': ' spatial entropy'})
+        self.policy_layout = dict(title="Policy loss", xaxis={'title': 'iter'}, yaxis={'title': 'loss'})
+        self.value_layout = dict(title="Value loss", xaxis={'title': 'iter'}, yaxis={'title': 'loss'})
+        self.entropy_layout = dict(title="Entropies", xaxis={'title': 'iter'}, yaxis={'title': 'entropy'})
+        self.spatial_entropy_layout = dict(title="Spatial entropies", xaxis={'title': 'iter'},
+                                           yaxis={'title': 'spatial entropy'})
 
-        self.NSTEPITER = []
+        self.ITER = []
         self.VALUELOSS = []
         self.VALUELOSS_MEAN = []
         self.valueloss_sample = []
@@ -158,10 +157,10 @@ class VisdomWrap:
     def get_data(self):
         return self.VALUELOSS, self.VALUELOSS_MEAN, self.POLICYLOSS, self.POLICYLOSS_MEAN,\
                self.ENTROPY, self.ENTROPY_MEAN, self.SPATIALENTROPY, self.SPATIALENTROPY_MEAN,\
-               self.REWARDS, self.REWARDS_MEAN, self.EPISODES, self.NSTEPITER
+               self.REWARDS, self.REWARDS_MEAN, self.EPISODES, self.ITER
 
     def set_data(self, VALUELOSS, VALUELOSS_MEAN, POLICYLOSS, POLICYLOSS_MEAN, ENTROPY, ENTROPY_MEAN,
-                 SPATIALENTROPY, SPATIALENTROPY_MEAN, REWARDS, REWARDS_MEAN, EPISODES, NSTEPITER):
+                 SPATIALENTROPY, SPATIALENTROPY_MEAN, REWARDS, REWARDS_MEAN, EPISODES, ITER):
         self.VALUELOSS = VALUELOSS
         self.VALUELOSS_MEAN = VALUELOSS_MEAN
         self.POLICYLOSS = POLICYLOSS
@@ -173,69 +172,67 @@ class VisdomWrap:
         self.REWARDS = REWARDS
         self.REWARDS_MEAN = REWARDS_MEAN
         self.EPISODES = EPISODES
-        self.NSTEPITER = NSTEPITER
+        self.ITER = ITER
 
-    def send_data(self, is_nstep, value_loss, policy_loss, entropy, spatial_entropy, reward):
+    def send_data(self, value_loss, policy_loss, entropy, spatial_entropy, done, reward):
 
-        if is_nstep:
+        self.valueloss_sample.append(value_loss)
+        self.policyloss_sample.append(policy_loss)
+        self.entropy_sample.append(float(entropy))
+        self.spatial_entropy_sample.append(float(spatial_entropy))
 
-            self.valueloss_sample.append(value_loss)
-            self.policyloss_sample.append(policy_loss)
-            self.entropy_sample.append(float(entropy))
-            self.spatial_entropy_sample.append(float(spatial_entropy))
+        if len(self.valueloss_sample) == 10:
+            self.ITER.append(len(self.ITER) * 10)
+            self.VALUELOSS.append(mean(self.valueloss_sample))
+            self.POLICYLOSS.append(mean(self.policyloss_sample))
+            self.ENTROPY.append(mean(self.entropy_sample))
+            self.SPATIALENTROPY.append(mean(self.spatial_entropy_sample))
 
-            if len(self.valueloss_sample) == 10:
-                self.NSTEPITER.append(len(self.NSTEPITER) * 10)
-                self.VALUELOSS.append(mean(self.valueloss_sample))
-                self.POLICYLOSS.append(mean(self.policyloss_sample))
-                self.ENTROPY.append(mean(self.entropy_sample))
-                self.SPATIALENTROPY.append(mean(self.spatial_entropy_sample))
+            self.valueloss_sample = []
+            self.policyloss_sample = []
+            self.entropy_sample = []
+            self.spatial_entropy_sample = []
 
-                self.valueloss_sample = []
-                self.policyloss_sample = []
-                self.entropy_sample = []
-                self.spatial_entropy_sample = []
+            if len(self.ITER) % 10 == 0:
+                self.VALUELOSS_MEAN.append(mean(self.VALUELOSS[len(self.VALUELOSS) - 10:]))
+                self.POLICYLOSS_MEAN.append(mean(self.POLICYLOSS[len(self.POLICYLOSS) - 10:]))
+                self.ENTROPY_MEAN.append(mean(self.ENTROPY[len(self.ENTROPY) - 10:]))
+                self.SPATIALENTROPY_MEAN.append(mean(self.SPATIALENTROPY[len(self.SPATIALENTROPY) - 10:]))
 
-                if len(self.NSTEPITER) % 10 == 0:
-                    self.VALUELOSS_MEAN.append(mean(self.VALUELOSS[len(self.VALUELOSS) - 10:]))
-                    self.POLICYLOSS_MEAN.append(mean(self.POLICYLOSS[len(self.POLICYLOSS) - 10:]))
-                    self.ENTROPY_MEAN.append(mean(self.ENTROPY[len(self.ENTROPY) - 10:]))
-                    self.SPATIALENTROPY_MEAN.append(mean(self.SPATIALENTROPY[len(self.SPATIALENTROPY) - 10:]))
+            trace_value = dict(x=self.ITER, y=self.VALUELOSS, type='custom', mode="lines", name='loss')
+            trace_policy = dict(x=self.ITER, y=self.POLICYLOSS, type='custom', mode="lines", name='loss')
+            trace_entropy = dict(x=self.ITER, y=self.ENTROPY, type='custom', mode="lines", name='entropy')
+            trace_spatial_entropy = dict(x=self.ITER, y=self.SPATIALENTROPY, type='custom', mode="lines",
+                                         name='spatial entropy')
 
-                trace_value = dict(x=self.NSTEPITER, y=self.VALUELOSS, type='custom', mode="lines", name='loss')
-                trace_policy = dict(x=self.NSTEPITER, y=self.POLICYLOSS, type='custom', mode="lines", name='loss')
-                trace_entropy = dict(x=self.NSTEPITER, y=self.ENTROPY, type='custom', mode="lines", name='entropy')
-                trace_spatial_entropy = dict(x=self.NSTEPITER, y=self.SPATIALENTROPY, type='custom', mode="lines",
-                                             name='spatial entropy')
+            trace_value_mean = dict(x=[x+45 for x in self.ITER[::10]], y=self.VALUELOSS_MEAN,
+                                    line={'color': 'red', 'width': 3}, type='custom', mode="lines",
+                                    name='mean loss')
+            trace_policy_mean = dict(x=[x+45 for x in self.ITER[::10]], y=self.POLICYLOSS_MEAN,
+                                     line={'color': 'red', 'width': 3}, type='custom', mode="lines",
+                                     name='mean loss')
+            trace_entropy_mean = dict(x=[x+45 for x in self.ITER[::10]], y=self.ENTROPY_MEAN,
+                                      line={'color': 'red', 'width': 3}, type='custom', mode="lines",
+                                      name='mean entropy')
+            trace_spatial_entropy_mean = dict(x=[x+45 for x in self.ITER[::10]], y=self.SPATIALENTROPY_MEAN,
+                                              line={'color': 'red', 'width': 3}, type='custom', mode="lines",
+                                              name='mean spatial entropy')
 
-                trace_value_mean = dict(x=[x+45 for x in self.NSTEPITER[::10]], y=self.VALUELOSS_MEAN,
-                                        line={'color': 'red', 'width': 3}, type='custom', mode="lines",
-                                        name='mean loss')
-                trace_policy_mean = dict(x=[x+45 for x in self.NSTEPITER[::10]], y=self.POLICYLOSS_MEAN,
-                                         line={'color': 'red', 'width': 3}, type='custom', mode="lines",
-                                         name='mean loss')
-                trace_entropy_mean = dict(x=[x+45 for x in self.NSTEPITER[::10]], y=self.ENTROPY_MEAN,
-                                          line={'color': 'red', 'width': 3}, type='custom', mode="lines",
-                                          name='mean entropy')
-                trace_spatial_entropy_mean = dict(x=[x+45 for x in self.NSTEPITER[::10]], y=self.SPATIALENTROPY_MEAN,
-                                                  line={'color': 'red', 'width': 3}, type='custom', mode="lines",
-                                                  name='mean spatial entropy')
+            self.vis._send(
+                {'data': [trace_value, trace_value_mean], 'layout': self.value_layout, 'win': 'valuewin'})
+            self.vis._send(
+                {'data': [trace_policy, trace_policy_mean], 'layout': self.policy_layout, 'win': 'policywin'})
+            self.vis._send(
+                {'data': [trace_entropy, trace_entropy_mean], 'layout': self.entropy_layout, 'win': 'entropywin'})
+            self.vis._send(
+                {'data': [trace_spatial_entropy, trace_spatial_entropy_mean], 'layout': self.spatial_entropy_layout,
+                 'win': 'spatial_entropywin'})
 
-                self.vis._send(
-                    {'data': [trace_value, trace_value_mean], 'layout': self.value_layout, 'win': 'valuewin'})
-                self.vis._send(
-                    {'data': [trace_policy, trace_policy_mean], 'layout': self.policy_layout, 'win': 'policywin'})
-                self.vis._send(
-                    {'data': [trace_entropy, trace_entropy_mean], 'layout': self.entropy_layout, 'win': 'entropywin'})
-                self.vis._send(
-                    {'data': [trace_spatial_entropy, trace_spatial_entropy_mean], 'layout': self.spatial_entropy_layout,
-                     'win': 'spatial_entropywin'})
-
-        else:
+        if done:
 
             self.reward_sample.append(reward)
-            if len(self.reward_sample) == 5:
-                self.EPISODES.append(len(self.EPISODES) * 5)
+            if len(self.reward_sample) == 1:
+                self.EPISODES.append(len(self.EPISODES))
                 self.REWARDS.append(mean(self.reward_sample))
                 self.reward_sample = []
 
@@ -243,7 +240,7 @@ class VisdomWrap:
                     self.REWARDS_MEAN.append(mean(self.REWARDS[len(self.REWARDS) - 10:]))
 
                 trace_reward = dict(x=self.EPISODES, y=self.REWARDS, type='custom', mode="lines", name='reward')
-                trace_reward_mean = dict(x=[x+10 for x in self.EPISODES[::10]], y=self.REWARDS_MEAN,
+                trace_reward_mean = dict(x=[x+4.5 for x in self.EPISODES[::10]], y=self.REWARDS_MEAN,
                                          line={'color': 'red', 'width': 4}, type='custom', mode="lines",
                                          name='mean reward')
 

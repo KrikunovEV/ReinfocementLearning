@@ -16,6 +16,7 @@ np.set_printoptions(threshold=sys.maxsize)
 env = sc2_env.SC2Env(
     map_name="BuildMarines",
     step_mul=1,
+    game_steps_per_episode=16*60*15,
     visualize=False,
     agent_interface_format=sc2_env.AgentInterfaceFormat(
         feature_dimensions=sc2_env.Dimensions(
@@ -23,20 +24,14 @@ env = sc2_env.SC2Env(
             minimap=64))
 )
 
-obs = env.reset()[0]  # num agent
-#print(obs.observation)
-#obs = env.step(actions=[sc2_actions.FunctionCall(6, [[0]])])[0]
-#print(obs.observation)
-
-action_mask = obs.observation["available_actions"]
-if 6 not in action_mask:
+for episode in range(100):
     obs = env.reset()[0]  # num agent
 
-for i in range(0, 100000000):
-    obs = env.step(actions=[sc2_actions.FunctionCall(0, [])])[0]
+    for i in range(0, 100000000):
+        obs = env.step(actions=[sc2_actions.FunctionCall(0, [])])[0]
 
-    if obs.step_type == 2:
-        break
+        if obs.step_type == 2:
+            break
 '''
 #print(obss)
 # 17

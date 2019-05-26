@@ -24,49 +24,41 @@ class Agent:
         self.values, self.entropies, self.spatial_entropies, self.logs, self.rewards = [], [], [], [], []
         self.episode_reward = 0
 
-    def reset(self):
+    def reset(self, episode):
         self.episode_reward = 0
-
-        # Learning rate linear annulling
-        # for param_group in Optimizer.param_groups:
-        #    param_group['lr'] = min(Params["LR"] * (1 - episode / Params["Episodes"]), param_group['lr'])
+        #for param_group in self.Optim.param_groups:
+            #param_group['lr'] = Global.Params["LR"] * (1 - episode / Global.Params["Episodes"])
 
     def make_decision(self, scr_features, map_features, flat_features, action_mask):
-        spatial_logits, logits, value = self.Model(scr_features, map_features, flat_features)
+        spatial_q, q, value = self.Model(scr_features, map_features, flat_features)
 
-        actions_ids = [i for i, action in enumerate(Global.MY_FUNCTION_TYPE) if action in action_mask]
-        logits = logits[actions_ids]
-        spatial_logits = spatial_logits.flatten()
+        entropy = -(functional.log_softmax(q, dim=-1) * functional.softmax(q, dim=-1)).sum()
+        spatial_entropy = -(functional.log_softmax(spatial_q, dim=-1) * functional.softmax(spatial_q, dim=-1)).sum()
 
-        probs = functional.softmax(logits, dim=-1)
-        spatial_probs = functional.softmax(spatial_logits, dim=-1)
+        available_actions = [i for i, action in enumerate(Global.MY_FUNCTION_TYPE) if action in action_mask]
+        q = q[available_actions]
 
-        log_probs = functional.log_softmax(logits, dim=-1)
-        spatial_log_probs = functional.log_softmax(spatial_logits, dim=-1)
+        policy = functional.softmax(q, dim=-1)
+        spatial_policy = functional.softmax(spatial_q, dim=-1)
 
-        probs_detached = probs.cpu().detach().numpy()
-        prob = np.random.choice(probs_detached, 1, p=probs_detached)
-        action_id = np.where(probs_detached == prob)[0][0]
-        prob = probs[action_id]  # to get attached tensor
-        action_id = Global.MY_FUNCTION_TYPE[actions_ids[action_id]]  # to get real id
+        action_id = self._on_policy_choice(policy)
+        probability = policy[action_id]
+        action_id = Global.MY_FUNCTION_TYPE[available_actions[action_id]]
 
         action_args = []
         for arg in Global.FUNCTIONS[action_id].args:
             if len(arg.sizes) == 1:
                 action_args.append([0])
             elif len(arg.sizes) > 1:
-                probs_detached = spatial_probs.cpu().detach().numpy()
-                spatial_action = np.random.choice(probs_detached, 1, p=probs_detached)
-                spatial_action = np.where(probs_detached == spatial_action)[0][0]
-                spatial_log_prob = spatial_log_probs[spatial_action]
-                prob = prob * spatial_probs[spatial_action]
-                y = spatial_action // Global.Params["FeatureSize"]
-                x = spatial_action % Global.Params["FeatureSize"]
+                spatial_action_id = self._on_policy_choice(spatial_policy)
+                probability = probability * spatial_policy[spatial_action_id]
+                y = spatial_action_id // Global.Params["FeatureSize"]
+                x = spatial_action_id % Global.Params["FeatureSize"]
                 action_args.append([x, y])
 
-        self.entropies.append(-(log_probs * probs).sum())
-        self.spatial_entropies.append(-(spatial_log_probs * spatial_probs).sum())
-        self.logs.append(torch.log(prob))  # don't take from log_probs because of composite of several probs for policy
+        self.logs.append(torch.log(probability))
+        self.entropies.append(entropy)
+        self.spatial_entropies.append(spatial_entropy)
         self.values.append(value)
 
         return action_id, action_args
@@ -85,18 +77,23 @@ class Agent:
             _, _, G = self.Model(scr_features, map_features, flat_features)
             G = G.detach().item()
 
-        discounted = []
-        for i in reversed(range(len(self.rewards))):
-            G = self.rewards[i] + Global.Params["Discount"] * G
-            discounted.append(G)
+        #discounted = []
+        #for i in reversed(range(len(self.rewards))):
+            #G = self.rewards[i] + Global.Params["Discount"] * G
+            #discounted.append(G)
 
-        discounted = (discounted - np.mean(discounted)) / np.std(discounted)
+        #if np.std(discounted) != 0:
+            #discounted = (discounted - np.mean(discounted)) / np.maximum(np.std(discounted), 0.000001)
 
         value_loss = 0
         policy_loss = 0
 
         for i in reversed(range(len(self.rewards))):
-            advantage = discounted[i] - self.values[i]
+            #G = self.rewards[i] + Global.Params["Discount"] * G
+            G = self.rewards[i] + Global.Params["Discount"] * G
+            #advantage = discounted[-i-1] - self.values[i]
+            advantage = G - self.values[i]
+
             value_loss = value_loss + 0.5 * advantage.pow(2)
             policy_loss = policy_loss - (advantage.detach() * self.logs[i] +
                                          Global.Params["Entropy"] * (self.entropies[i] + self.spatial_entropies[i]))
@@ -108,17 +105,22 @@ class Agent:
         nn.utils.clip_grad_norm_(self.Model.parameters(), Global.Params["GradClip"])
         self.Optim.step()
 
-        if done:
-            self.DataMgr.send_data(False, 0, 0, 0, 0, self.episode_reward)
-        else:
-            self.DataMgr.send_data(True, value_loss.item(), policy_loss.item(),
-                          np.mean([entropy.item() for entropy in self.entropies]),
-                          np.mean([entropy.item() for entropy in self.spatial_entropies]), 0)
+        self.DataMgr.send_data(value_loss.item(), policy_loss.item(),
+                               np.mean([entropy.item() for entropy in self.entropies]),
+                               np.mean([entropy.item() for entropy in self.spatial_entropies]), done,
+                               self.episode_reward)
 
         self.values, self.entropies, self.spatial_entropies, self.logs, self.rewards = [], [], [], [], []
 
-    def _load_agent_state(self, episode):
+    def _on_policy_choice(self, policy, do_normalize=False):
+        probabilities = policy.cpu().detach().numpy()
+        if do_normalize:
+            probabilities /= np.sum(probabilities)
+        probability = np.random.choice(probabilities, 1, p=probabilities)
+        action_id = np.where(probabilities == probability)[0][0]
+        return action_id
 
+    def _load_agent_state(self, episode):
         state = torch.load(self.save_path + str(episode) + '.pt')
 
         self.Model.load_state_dict(state['model_state'])

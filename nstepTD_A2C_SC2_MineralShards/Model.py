@@ -2,6 +2,7 @@ from Util import Global
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as functional
 
 from numpy import array
 
@@ -55,14 +56,13 @@ class FullyConvModel(nn.Module):
 
         features = torch.cat((scr_features, map_features, flat_features), 1)
 
-        spatial_logits = self.SpatialPolicy(features)
+        spatial_q = self.SpatialPolicy(features).flatten()
 
-        nonspatials = features.flatten()
-        nonspatials = self.LinearNet(nonspatials)
-        logits = self.Policy(nonspatials)
+        nonspatials = self.LinearNet(features.flatten())
+        q = self.Policy(nonspatials)
         value = self.Value(nonspatials)
 
-        return spatial_logits, logits, value
+        return spatial_q, q, value
 
     def _preprocess(self, features, features_type):
 

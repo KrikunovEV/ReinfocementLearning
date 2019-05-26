@@ -12,7 +12,7 @@ FLAGS = flags.FLAGS
 FLAGS(sys.argv)
 
 
-save_path = 'checkpoints_marines_2/'
+save_path = 'checkpoints_marines_8/'
 episode_load = 0
 if episode_load == 0:
     Global.save(save_path)
@@ -34,18 +34,28 @@ env = sc2_env.SC2Env(
 
 agent = Agent(episode_load, save_path)
 
-episode = episode_load
-while episode != Global.Params["Episodes"]:
+
+for episode in range(episode_load, Global.Params["Episodes"]):
 
     episode_reward = 0
     step = 0
     done = False
     obs = env.reset()[0]
-    agent.reset()
+    agent.reset(episode)
 
-    action_mask = obs.observation["available_actions"]
-    if 6 in action_mask:
-        continue
+    while 6 in obs.observation["available_actions"]:
+        env.close()
+        env = sc2_env.SC2Env(
+            map_name="BuildMarines",  # CollectMineralShards
+            step_mul=Global.Params["GameSteps"],
+            visualize=False,
+            agent_interface_format=sc2_env.AgentInterfaceFormat(
+                feature_dimensions=sc2_env.Dimensions(
+                    screen=Global.Params["FeatureSize"],
+                    minimap=Global.Params["FeatureSize"]))
+        )
+        obs = env.reset()[0]
+        print('GOT ISSUE')
 
     while not done:
 
@@ -57,7 +67,7 @@ while episode != Global.Params["Episodes"]:
         action_id, action_args = agent.make_decision(scr_features, map_features, flat_features, action_mask)
         obs = env.step(actions=[sc2_actions.FunctionCall(action_id, action_args)])[0]
 
-        agent.get_reward(obs.reward)  # clip(obs.reward, -1, 1)
+        agent.get_reward(clip(obs.reward, -1, 1))  # clip(obs.reward, -1, 1)
 
         done = (obs.step_type == StepType.LAST)
 
@@ -65,8 +75,6 @@ while episode != Global.Params["Episodes"]:
             agent.train(obs, done)  # episode has finished
             break
 
-        # N-STEP linear increase
-        # T = Params["Steps"] + int((Params["MaxSteps"] - Params["Steps"]) * (episode / Params["Episodes"]))
         step += 1
         if step % Global.Params["Steps"] == 0:
             agent.train(obs, done)  # n-step update
