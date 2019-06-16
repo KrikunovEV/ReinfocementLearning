@@ -4,7 +4,6 @@ from Agent import Agent
 from pysc2.env import sc2_env
 from pysc2.env.environment import StepType
 from pysc2.lib import actions as sc2_actions
-from numpy import clip
 
 import sys
 from absl import flags
@@ -12,8 +11,8 @@ FLAGS = flags.FLAGS
 FLAGS(sys.argv)
 
 
-save_path = 'checkpoints_marines_8/'
-episode_load = 0
+save_path = 'checkpoints_marines_17/'
+episode_load = 1000
 if episode_load == 0:
     Global.save(save_path)
 else:
@@ -67,7 +66,7 @@ for episode in range(episode_load, Global.Params["Episodes"]):
         action_id, action_args = agent.make_decision(scr_features, map_features, flat_features, action_mask)
         obs = env.step(actions=[sc2_actions.FunctionCall(action_id, action_args)])[0]
 
-        agent.get_reward(clip(obs.reward, -1, 1))  # clip(obs.reward, -1, 1)
+        agent.get_reward(obs.reward)
 
         done = (obs.step_type == StepType.LAST)
 

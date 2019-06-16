@@ -37,8 +37,8 @@ class Global:
     UnitCount = len(MY_UNIT_TYPE)
 
     Params = {
-        "Episodes":  1000,
-        "Steps":     500,  # 560 steps = 1/3 of 14min
+        "Episodes":  2000,
+        "Steps":     300,  # 560 steps = 1/3 of 14min
         "MaxSteps":  1800,  # 15 min (600 steps = 5 min) since GameSteps is 8
         "Discount":  0.99,
         "GradClip":  40,
@@ -246,6 +246,42 @@ class VisdomWrap:
 
                 self.vis._send(
                     {'data': [trace_reward, trace_reward_mean], 'layout': self.reward_layout, 'win': 'rewardwin'})
+
+    def send_current_data(self):
+
+        trace_reward = dict(x=self.EPISODES, y=self.REWARDS, type='custom', mode="lines", name='reward')
+        trace_reward_mean = dict(x=[x + 4.5 for x in self.EPISODES[::10]], y=self.REWARDS_MEAN,
+                                 line={'color': 'red', 'width': 4}, type='custom', mode="lines",
+                                 name='mean reward')
+        trace_value = dict(x=self.ITER, y=self.VALUELOSS, type='custom', mode="lines", name='loss')
+        trace_policy = dict(x=self.ITER, y=self.POLICYLOSS, type='custom', mode="lines", name='loss')
+        trace_entropy = dict(x=self.ITER, y=self.ENTROPY, type='custom', mode="lines", name='entropy')
+        trace_spatial_entropy = dict(x=self.ITER, y=self.SPATIALENTROPY, type='custom', mode="lines",
+                                     name='spatial entropy')
+        trace_value_mean = dict(x=[x + 45 for x in self.ITER[::10]], y=self.VALUELOSS_MEAN,
+                                line={'color': 'red', 'width': 3}, type='custom', mode="lines",
+                                name='mean loss')
+        trace_policy_mean = dict(x=[x + 45 for x in self.ITER[::10]], y=self.POLICYLOSS_MEAN,
+                                 line={'color': 'red', 'width': 3}, type='custom', mode="lines",
+                                 name='mean loss')
+        trace_entropy_mean = dict(x=[x + 45 for x in self.ITER[::10]], y=self.ENTROPY_MEAN,
+                                  line={'color': 'red', 'width': 3}, type='custom', mode="lines",
+                                  name='mean entropy')
+        trace_spatial_entropy_mean = dict(x=[x + 45 for x in self.ITER[::10]], y=self.SPATIALENTROPY_MEAN,
+                                          line={'color': 'red', 'width': 3}, type='custom', mode="lines",
+                                          name='mean spatial entropy')
+        self.vis._send(
+            {'data': [trace_reward, trace_reward_mean], 'layout': self.reward_layout, 'win': 'rewardwin'})
+        self.vis._send(
+            {'data': [trace_value, trace_value_mean], 'layout': self.value_layout, 'win': 'valuewin'})
+        self.vis._send(
+            {'data': [trace_policy, trace_policy_mean], 'layout': self.policy_layout, 'win': 'policywin'})
+        self.vis._send(
+            {'data': [trace_entropy, trace_entropy_mean], 'layout': self.entropy_layout, 'win': 'entropywin'})
+        self.vis._send(
+            {'data': [trace_spatial_entropy, trace_spatial_entropy_mean], 'layout': self.spatial_entropy_layout,
+             'win': 'spatial_entropywin'})
+
 
 
 '''

@@ -27,9 +27,9 @@ class Agent:
     def reset(self, episode):
         self.episode_reward = 0
         #for param_group in self.Optim.param_groups:
-            #param_group['lr'] = Global.Params["LR"] * (1 - episode / Global.Params["Episodes"])
+        #    param_group['lr'] = Global.Params["LR"] * (1 - episode / 2 / Global.Params["Episodes"])
 
-    def make_decision(self, scr_features, map_features, flat_features, action_mask):
+    def make_decision(self, scr_features, map_features, flat_features, action_mask, play_model=False):
         spatial_q, q, value = self.Model(scr_features, map_features, flat_features)
 
         entropy = -(functional.log_softmax(q, dim=-1) * functional.softmax(q, dim=-1)).sum()
@@ -56,15 +56,16 @@ class Agent:
                 x = spatial_action_id % Global.Params["FeatureSize"]
                 action_args.append([x, y])
 
-        self.logs.append(torch.log(probability))
-        self.entropies.append(entropy)
-        self.spatial_entropies.append(spatial_entropy)
-        self.values.append(value)
+        if not play_model:
+            self.logs.append(torch.log(probability))
+            self.entropies.append(entropy)
+            self.spatial_entropies.append(spatial_entropy)
+            self.values.append(value)
 
         return action_id, action_args
 
     def get_reward(self, reward):
-        self.rewards.append(reward)
+        self.rewards.append(reward)  # clip(obs.reward, -1, 1)
         self.episode_reward += reward
 
     def train(self, obs, done):
@@ -79,18 +80,17 @@ class Agent:
 
         #discounted = []
         #for i in reversed(range(len(self.rewards))):
-            #G = self.rewards[i] + Global.Params["Discount"] * G
-            #discounted.append(G)
+        #    G = self.rewards[i] + Global.Params["Discount"] * G
+        #    discounted.append(G)
 
-        #if np.std(discounted) != 0:
-            #discounted = (discounted - np.mean(discounted)) / np.maximum(np.std(discounted), 0.000001)
+        #discounted = (discounted - np.mean(discounted)) / np.maximum(np.std(discounted), 0.000001)
 
         value_loss = 0
         policy_loss = 0
 
         for i in reversed(range(len(self.rewards))):
-            #G = self.rewards[i] + Global.Params["Discount"] * G
             G = self.rewards[i] + Global.Params["Discount"] * G
+
             #advantage = discounted[-i-1] - self.values[i]
             advantage = G - self.values[i]
 
