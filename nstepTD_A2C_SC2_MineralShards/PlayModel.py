@@ -11,7 +11,7 @@ FLAGS(sys.argv)
 
 env = sc2_env.SC2Env(
     map_name="BuildMarines",
-    step_mul=4,
+    step_mul=8,
     visualize=False,
     agent_interface_format=sc2_env.AgentInterfaceFormat(
         feature_dimensions=sc2_env.Dimensions(
@@ -35,7 +35,7 @@ for episode in range(1000):
         env.close()
         env = sc2_env.SC2Env(
             map_name="BuildMarines",
-            step_mul=4,
+            step_mul=8,
             visualize=False,
             agent_interface_format=sc2_env.AgentInterfaceFormat(
                 feature_dimensions=sc2_env.Dimensions(

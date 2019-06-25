@@ -14,7 +14,7 @@ checkpoints_marines_7 - alpha 0.00005 (1_4)
 
 
 #path = ['checkpoints_marines_10/1000.pt', 'checkpoints_marines_11/1000.pt', 'checkpoints_marines_12/1000.pt', 'checkpoints_marines_13/1000.pt']
-path = ['checkpoints_marines_13/1000.pt']
+path = ['checkpoints_marines/1000.pt']
 colors = ['blue', 'red', 'black', 'orange']
 labels = ['0.0005', '0.0002', '0.0001', '0.00005']
 #DataMgr = VisdomWrap()
