@@ -1,4 +1,5 @@
-import torch
+import torch.nn
+import torch.nn.functional
 import gym
 import numpy as np
 from A2CModel import A2CModel
