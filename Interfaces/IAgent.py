@@ -8,11 +8,11 @@ class IAgent(ABC):
         pass
 
     @abstractmethod
-    def action(self):
+    def action(self, obs):
         pass
 
     @abstractmethod
-    def reward(self):
+    def reward(self, reward):
         pass
 
 

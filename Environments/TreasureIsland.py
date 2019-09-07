@@ -2,7 +2,7 @@ import pygame
 import sys
 import numpy as np
 
-from core.interfaces.IEnvironment import IEnvironment
+from Interfaces.IEnvironment import IEnvironment
 from enum import IntEnum, Enum
 from random import randint
 from dataclasses import dataclass
@@ -12,25 +12,30 @@ class TIenv(IEnvironment):
 
     @dataclass
     class Observation:
-        done: bool
+
+        @dataclass
+        class Feature:
+
+            class Type(Enum):
+                SCALAR = 0,
+                CATEGORICAL = 1
+
+            data:  np.ndarray
+            type:  Type
+            scale: int
+
+        done:   bool
         reward: float
-        value: float
-        cells_type: np.ndarray
-        entity_map: np.ndarray
-        treasure_map: np.ndarray
-        value_map: np.ndarray
+        cell_map:     Feature
+        entity_map:   Feature
+        treasure_map: Feature
 
-        def __str__(self):
-            cell_type_list = ""
-            for type in TIenv.Cell.Type:
-                cell_type_list += type.name + "=" + str(type.value) + ", "
-
-            return "\ndone: {done}\nreward: {reward}\nvalue: {value}\ncells_type({cell_type_list}):\n{cells_type}\n" \
-                   "entity_map(NOBODY=0, AGENT=1, ):\n{entity_mep}\ntreasure_map(scalar):\n{treasure_map}\n" \
-                   "value_map(scalar):\n{value_map}\n".format(
-                    done=self.done, reward=self.reward, value=self.value, cell_type_list=cell_type_list,
-                    cells_type=self.cells_type, entity_mep=self.entity_map, treasure_map=self.treasure_map,
-                    value_map=self.value_map)
+        def __init__(self, done, reward, shape):
+            self.done = done
+            self.reward = reward
+            self.cell_map = self.Feature(np.empty(shape), self.Feature.Type.CATEGORICAL, 2)
+            self.entity_map = self.Feature(np.zeros(shape), self.Feature.Type.CATEGORICAL, 2)
+            self.treasure_map = self.Feature(np.empty(shape), self.Feature.Type.SCALAR, 0)
 
     class Cell:
 
@@ -82,7 +87,6 @@ class TIenv(IEnvironment):
         pygame.quit()
 
     def reset(self):
-
         self.cells = [[self.Cell() for x in range(int(self.window_size[0] / self.cell_size[0]))]
                       for y in range(int(self.window_size[1] / self.cell_size[1]))]
 
@@ -93,35 +97,20 @@ class TIenv(IEnvironment):
         self.max_steps *= self.num_marks  # such treasure places
         self.max_steps += 25  # additional steps to come at treasure places
 
-        marks = []
-
+        lim = len(self.cells[0]) / self.num_marks
         for mark in range(self.num_marks):
-
-            x, y = 0, 0
-            while True:
-                x, y = randint(3, len(self.cells[0]) - 4), randint(3, len(self.cells) - 4)
-
-                found = True
-                for xy in marks:
-                    if (xy[0] - 4) < x < (xy[0] + 4) and (xy[1] - 4) <= y <= (xy[1] + 4):
-                        found = False
-                        break
-
-                if not found:
-                    continue
-
-                marks.append((x, y))
-                break
+            x = randint(lim * mark + 1, lim * (mark + 1) - 2)
+            y = randint(1, len(self.cells) - 2)
 
             for _x in range(3):
                 for _y in range(3):
-                    self.cells[y - 1 + _y][x - 1 + _x].type = self.Cell.Type.TREASURE
-                    self.cells[y - 1 + _y][x - 1 + _x].value = 0.5
-                    self.cells[y - 1 + _y][x - 1 + _x].treasure_residue = randint(self.TREASURE_MIN, self.TREASURE_MAX)
+                    y_index = y - 1 + _y
+                    x_index = x - 1 + _x
+                    self.cells[y_index][x_index].type = self.Cell.Type.TREASURE
+                    self.cells[y_index][x_index].treasure_residue = randint(self.TREASURE_MIN, self.TREASURE_MAX)
             self.cells[y][x].treasure_residue = self.TREASURE_MAX
-            self.cells[y][x].value = 1
 
-        return self._make_observation(False, 0, 0)
+        return self._make_observation(False, 0)
 
     def render(self):
         self.clock.tick(self.frame_rate)
@@ -150,14 +139,12 @@ class TIenv(IEnvironment):
                        self.entity_size[0], self.entity_size[1])
         pygame.draw.rect(self.screen, self.RED, entity_cell)
 
-        pygame.display.set_caption("Steps remains: " + str(self.max_steps))
+        pygame.display.set_caption("Step remains: " + str(self.max_steps))
 
         pygame.display.update()
 
     def step(self, action):
-
         reward = 0
-        value = 0
 
         if action == self.Entity.Actions.UP:
             if self.entity.y - 1 >= 0:
@@ -172,32 +159,28 @@ class TIenv(IEnvironment):
             if self.entity.x - 1 >= 0:
                 self.entity.x -= 1
         elif action == self.Entity.Actions.DIG:
-            if self.cells[self.entity.y][self.entity.x].treasure_residue > 0:
+            if (self.cells[self.entity.y][self.entity.x].type == self.Cell.Type.TREASURE) and\
+                    (self.cells[self.entity.y][self.entity.x].treasure_residue > 0):
                 self.cells[self.entity.y][self.entity.x].treasure_residue -= 1
                 reward = 1
-                value = self.cells[self.entity.y][self.entity.x].value
 
         self.max_steps -= 1
         done = True if self.max_steps == 0 else False
 
-        return self._make_observation(done, reward, value)
+        return self._make_observation(done, reward)
 
-    def _make_observation(self, done, reward, value):
+    def _make_observation(self, done, reward):
         shape = (len(self.cells), len(self.cells[0]))
+        observation = self.Observation(done, reward, shape)
 
-        cells_type = np.empty(shape)
-        treasure_map = np.empty(shape)
-        value_map = np.empty(shape)
         for y in range(shape[0]):
             for x in range(shape[1]):
-                cells_type[y][x] = self.cells[y][x].type.value
-                treasure_map[y][x] = self.cells[y][x].treasure_residue
-                value_map[y][x] = self.cells[y][x].value
+                observation.cell_map.data[y][x] = self.cells[y][x].type.value
+                observation.treasure_map.data[y][x] = self.cells[y][x].treasure_residue
 
-        entity_map = np.zeros(shape)
-        entity_map[self.entity.y][self.entity.x] = self.entity.coalition
+        observation.entity_map.data[self.entity.y][self.entity.x] = self.entity.coalition
 
-        return self.Observation(done, reward, value, cells_type, entity_map, treasure_map, value_map)
+        return observation
 
 
 if __name__ == '__main__':
