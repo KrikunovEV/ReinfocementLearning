@@ -14,6 +14,3 @@ class IAgent(ABC):
     @abstractmethod
     def reward(self, reward):
         pass
-
-
-print("Not implemented yet. Leave it.\n")

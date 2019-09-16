@@ -1,18 +1,34 @@
 from Environments.TreasureIsland import TIenv
 from Agents.TreasureIslandAgent import TIagent
 
-env = TIenv(frame_rate=120, num_marks=2)
-agent = TIagent()
+import torch
 
-EPISODE_COUNT = 1000
-STEP_COUNT = 30
+feature_size = (16, 16)
+
+env = TIenv(frame_rate=120, num_marks=4, feature_size=feature_size)
+agent = TIagent(feature_size=feature_size)
+
+EPISODE_COUNT = 2000
+STEP_COUNT = 40
+
 
 for episode in range(EPISODE_COUNT):
 
     obs = env.reset()
     agent.reset()
 
+    if episode % 100 == 0 and episode != 0:
+        state = {
+            'model_state': agent.model.state_dict(),
+            'optim_state': agent.optim.state_dict()
+        }
+
+        torch.save(state, "models/" + str(episode) + '.pt')
+        env.save_value_and_policy_map_for_A2C(agent.model, 'images/' + str(episode) + '.png')
+
     steps = 0
+
+    print(str(episode + 1) + ": ")
 
     while True:
         env.render()
@@ -29,4 +45,4 @@ for episode in range(EPISODE_COUNT):
         if steps % STEP_COUNT == 0:
             agent.train(obs)
 
-    print(str(episode + 1) + ": " + str(agent.episode_reward) + " rewards")
+    print("rewards: " + str(agent.episode_reward))
